@@ -391,7 +391,7 @@ viewCards model cards =
 
 viewCard : Model -> Card -> Html Msg
 viewCard model card =
-    li []
+    li [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "") ]
     [ div [ class "list-card-header" ]
         [ img [ src card.authorPhotoURL, width 48, height 48 ] []
         , viewLink (PageCard card.id) (toString card.creationTime)
@@ -444,7 +444,9 @@ viewVolunteer card currentUser volunteer =
     li []
         [ img [ src volunteer.photoURL, width 48, height 48 ] []
         , viewLink (PageUser volunteer.uid) volunteer.name
-        , if not (String.isEmpty currentUser.uid) && currentUser.uid == card.authorId
+        , if (String.isEmpty card.assignedTo)
+            && not (String.isEmpty currentUser.uid)
+            && currentUser.uid == card.authorId
             then button [ onClick (AssignVolunteer card volunteer) ] [ text "Принять помощь" ]
             else span [] []
         ]

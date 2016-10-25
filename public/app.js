@@ -9936,8 +9936,8 @@ var _user$project$Main$viewVolunteer = F3(
 					_user$project$Main$viewLink,
 					_user$project$Main$PageUser(volunteer.uid),
 					volunteer.name),
-					(_elm_lang$core$Basics$not(
-					_elm_lang$core$String$isEmpty(currentUser.uid)) && _elm_lang$core$Native_Utils.eq(currentUser.uid, card.authorId)) ? A2(
+					(_elm_lang$core$String$isEmpty(card.assignedTo) && (_elm_lang$core$Basics$not(
+					_elm_lang$core$String$isEmpty(currentUser.uid)) && _elm_lang$core$Native_Utils.eq(currentUser.uid, card.authorId))) ? A2(
 					_elm_lang$html$Html$button,
 					_elm_lang$core$Native_List.fromArray(
 						[
@@ -10016,7 +10016,11 @@ var _user$project$Main$viewCard = F2(
 		return A2(
 			_elm_lang$html$Html$li,
 			_elm_lang$core$Native_List.fromArray(
-				[]),
+				[
+					_elm_lang$html$Html_Attributes$class(
+					_elm_lang$core$Basics$not(
+						_elm_lang$core$String$isEmpty(card.assignedTo)) ? '_assigned' : '')
+				]),
 			_elm_lang$core$Native_List.fromArray(
 				[
 					A2(

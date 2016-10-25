@@ -23,6 +23,9 @@
   #container {
     padding: 56px 14px 15px;
   }
+    ._assigned {
+      background: #eee;
+    }
 </style>
 
 <div id="main"></div>
@@ -65,7 +68,7 @@
         dbCards.limitToLast(12).on('child_added', addCardToList);
       }
     }).catch(function(error) {
-      console.log('error', typeof error, error);
+      console.error('error', typeof error, error);
     });
   }
 
@@ -161,7 +164,6 @@
   });
 
   app.ports.createCard.subscribe(function(card) {
-    console.log('card', typeof card, card);
     var updates = {};
     var cardId = dbCards.push().key;
     card.id = cardId;
@@ -194,7 +196,6 @@
       snapshot.forEach(function(card) {
         cards.push(card.val());
       });
-      console.log('cards', typeof cards, cards);
       app.ports.userTakenCardsFetched.send(cards);
     });
   });
@@ -273,19 +274,23 @@
   */
   app.ports.assignVolunteer.subscribe(function(o) {
     var updates = {};
-      updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
-      updates['user-taken-cards/' + o.card.id + '/assignedTo'] = o.user.uid;
-      // todo update user-taken-cards
-      // todo update all the cards, that has not got field assignedTo : String
-      database.ref()
-        .update(updates)
-        .then(function() {
-          // volunteer accepted
-          // app.ports.cardRemoved.send(card);
-        })
-        .catch(function(error) {
-          console.error('## error during [accepting volunteer]:', o.user.uid, 'for card:', o.card.id, error);
+      database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
+        var volunteers = [];
+        snapshot.forEach(function(volunteer) {
+          updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedTo'] = o.user.uid;
         });
+
+        updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+
+        database.ref()
+          .update(updates)
+          .then(function() {
+            // volunteer accepted
+          })
+          .catch(function(error) {
+            console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
+          });
+      });
   });
 </script>
 </html>
