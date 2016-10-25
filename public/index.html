@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>besokind</title>
+<style>
+  #topbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+    .topbar__user-photo {
+      float: right;
+    }
+    .topbar__login-btn {
+      height: 48px;
+      float: right;
+    }
+    .topbar__logout-btn {
+      height: 48px;
+      float: right;
+    }
+  #container {
+    padding: 56px 14px 15px;
+  }
+</style>
+
+<div id="main"></div>
+
+<script src="https://www.gstatic.com/firebasejs/3.4.1/firebase.js"></script>
+<script src="app.js"></script>
+<script>
+  var config = {
+    apiKey: "AIzaSyBenkychYMdGWfGBnjpxDAeEzR9hu60_f0",
+    authDomain: "besokind-b837c.firebaseapp.com",
+    databaseURL: "https://besokind-b837c.firebaseio.com",
+    storageBucket: "besokind-b837c.appspot.com",
+    messagingSenderId: "490319737092"
+  };
+  firebase.initializeApp(config);
+
+  var auth = firebase.auth();
+  var database = firebase.database();
+  var dbCards = database.ref('cards');
+  dbCards.off();
+
+  var subscribedToNewCards = false;
+
+
+  function addCardToList(card) {
+    app.ports.addCardToList.send(card.val());
+  }
+
+
+  function getCards(callback) {
+    dbCards.limitToLast(12).once('value', function(snapshot) {
+      var cards = [];
+      snapshot.forEach(function(card) {
+        cards.push(card.val());
+      });
+      app.ports.showCards.send(cards);
+
+      if (!subscribedToNewCards) {
+        subscribedToNewCards = true;
+        dbCards.limitToLast(12).on('child_added', addCardToList);
+      }
+    }).catch(function(error) {
+      console.log('error', typeof error, error);
+    });
+  }
+
+
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      database.ref('users/' + user.uid).once('value', function(snapshot) {
+        var userInDb = snapshot.val();
+        if (userInDb) {
+          app.ports.authStateChanged.send(userInDb);
+        } else {
+          // authorized for the first time -> create user
+          var updates = {};
+          var newUser = {
+            uid: user.uid,
+            name: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            karma: user.karma,
+            moderator: user.moderator
+          };
+          updates['users/' + user.uid] = newUser;
+
+          database.ref()
+            .update(updates)
+            .then(function() {
+              app.ports.authStateChanged.send(newUser);
+            })
+            .catch(function(error) {
+              console.error('## error during [creating new user]:', error);
+            });
+        }
+      }).catch(function(error) {
+        console.error('## error during [getting user info]:', error);
+      });
+    } else {
+      app.ports.authStateChanged.send({
+        uid: '',
+        name: '',
+        email: '',
+        photoURL: '',
+        karma: 0,
+        moderator: false
+      });
+    }
+  });
+
+
+  var app = Elm.Main.fullscreen();
+  app.ports.login.subscribe(function(authType) {
+    switch (authType) {
+      case 'google':
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        break;
+    }
+  });
+
+  app.ports.logout.subscribe(function() {
+    auth.signOut();
+  });
+
+  app.ports.fetchStreamCards.subscribe(function() {
+    getCards();
+  });
+
+  app.ports.fetchCard.subscribe(function(id) {
+    database.ref('cards/' + id).once('value', function(card) {
+      app.ports.cardFetched.send(card.val());
+    });
+  });
+
+  /*
+    port fetchCardVolunteers : String -> Cmd msg
+  */
+  app.ports.fetchCardVolunteers.subscribe(function(id) {
+    database.ref('card-volunteers/' + id).once('value', function(snapshot) {
+      var volunteers = [];
+      snapshot.forEach(function(user) {
+        volunteers.push(user.val());
+      });
+      app.ports.cardVolunteersFetched.send(volunteers);
+    });
+  });
+
+  app.ports.fetchUserCards.subscribe(function(id) {
+    dbCards.orderByChild('authorId').equalTo(id).once('value', function(snapshot) {
+      var cards = [];
+      snapshot.forEach(function(card) {
+        cards.push(card.val());
+      });
+      app.ports.showCards.send(cards);
+    });
+  });
+
+  app.ports.createCard.subscribe(function(card) {
+    console.log('card', typeof card, card);
+    var updates = {};
+    var cardId = dbCards.push().key;
+    card.id = cardId;
+    card.creationTime = +new Date();
+    updates['/cards/' + cardId] = card;
+    database.ref()
+      .update(updates)
+      .then(getCards)
+      .catch(function(error) {
+        console.error('## error during [pushing card]:', card, error);
+      });
+  });
+
+  app.ports.fetchUser.subscribe(function(id) {
+    database.ref('users/' + id).once('value', function(snapshot) {
+      var userInDb = snapshot.val();
+
+      if (userInDb) {
+        app.ports.userFetched.send(userInDb);
+      }
+    });
+  });
+
+  /*
+    port fetchUserTakenCards : String -> Cmd msg
+  */
+  app.ports.fetchUserTakenCards.subscribe(function(userId) {
+    database.ref('user-taken-cards/' + userId).limitToLast(12).once('value', function(snapshot) {
+      var cards = [];
+      snapshot.forEach(function(card) {
+        cards.push(card.val());
+      });
+      console.log('cards', typeof cards, cards);
+      app.ports.userTakenCardsFetched.send(cards);
+    });
+  });
+
+  /*
+    port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
+  */
+  app.ports.updateKarma.subscribe(function(o) {
+    var updates = {};
+    updates['cards/' + o.cardId + '/karma'] = o.karma;
+    database.ref()
+      .update(updates)
+      .then(function() {
+        // karma updated
+      })
+      .catch(function(error) {
+        console.error('## error during [updating karma]', o.karma, 'for card:', o.cardId, error);
+      });
+  });
+
+  /*
+    port takeCard : { user : User, card : Card } -> Cmd msg
+  */
+  app.ports.takeCard.subscribe(function(o) {
+    var updates = {};
+    updates['card-volunteers/' + o.card.id + '/' + o.user.uid] = o.user;
+    updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = o.card;
+    database.ref()
+      .update(updates)
+      .then(function() {
+        console.info('## volunteer', o.user.uid, 'added to', o.card.id);
+  
+        database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
+        var volunteers = [];
+        snapshot.forEach(function(user) {
+          volunteers.push(user.val());
+        });
+        app.ports.cardVolunteersFetched.send(volunteers);
+      });
+      })
+      .catch(function(error) {
+        console.error('## error during [adding volunteer]', o.user.uid, 'to card:', o.card.id, error);
+      });
+  });
+
+  /*
+    port removeCard : Card -> Cmd msg
+  */
+  app.ports.removeCard.subscribe(function(card) {
+    database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
+      var volunteers = [];
+      snapshot.forEach(function(volunteer) {
+        volunteers.push(volunteer.key());
+      });
+
+      var updates = {};
+      updates['cards/' + card.id] = null;
+      updates['card-volunteers/' + card.id] = null;
+      volunteers.forEach(function(volunteerId) {
+        updates['user-taken-cards/' + volunteerId + '/' + card.id] = null;
+      });
+      database.ref()
+        .update(updates)
+        .then(function() {
+          // card removed
+          app.ports.cardRemoved.send(card);
+        })
+        .catch(function(error) {
+          console.error('## error during [removing card]:', card.id, error);
+        });
+    });
+  });
+
+  /*
+    port assignVolunteer : { card: Card, user: User } -> Cmd msg
+  */
+  app.ports.assignVolunteer.subscribe(function(o) {
+    var updates = {};
+      updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+      updates['user-taken-cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+      // todo update user-taken-cards
+      // todo update all the cards, that has not got field assignedTo : String
+      database.ref()
+        .update(updates)
+        .then(function() {
+          // volunteer accepted
+          // app.ports.cardRemoved.send(card);
+        })
+        .catch(function(error) {
+          console.error('## error during [accepting volunteer]:', o.user.uid, 'for card:', o.card.id, error);
+        });
+  });
+</script>
+</html>
