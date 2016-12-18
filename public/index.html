@@ -3,12 +3,15 @@
 <meta charset="utf-8">
 <title>besokind</title>
 <style>
-  #topbar {
+  body {
+    margin: 0;
+  }
+  /*#topbar {
     position: fixed;
     left: 0;
     right: 0;
     top: 0;
-  }
+  }*/
     .topbar__user-photo {
       float: right;
     }
@@ -20,9 +23,9 @@
       height: 48px;
       float: right;
     }
-  #container {
-    padding: 56px 14px 15px;
-  }
+  /*#container {
+    padding: 60px 14px 15px;
+  }*/
     ._assigned {
       background: #eee;
     }
@@ -56,6 +59,8 @@
 
 
   function getCards(callback) {
+    // todo не работает такая фильтрация
+    // .orderByChild('assignedTo').equalTo('')
     dbCards.limitToLast(12).once('value', function(snapshot) {
       var cards = [];
       snapshot.forEach(function(card) {
@@ -115,6 +120,7 @@
       });
     }
   });
+
 
 
   var app = Elm.Main.fullscreen();

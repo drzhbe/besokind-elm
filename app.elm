@@ -1,20 +1,18 @@
 port module Main exposing (..)
 import Html exposing (..)
-import Html.App as App
-import Html.Events exposing (onClick, onInput, keyCode, on)
+import Html.Events exposing (onClick, onInput, keyCode, on, onWithOptions, Options)
 import Html.Attributes exposing (..)
-import Json.Decode as Json exposing ((:=), at, string)
+import Json.Decode as Json exposing (at, string, value, succeed)
 import Navigation
-import UrlParser exposing (Parser, (</>), format, int, oneOf, s, string)
+import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import String
 
 
 main =
-    Navigation.program (Navigation.makeParser hashParser)
+    Navigation.program UrlChange
         { init = init
         , view = view
         , update = update
-        , urlUpdate = urlUpdate
         , subscriptions = subscriptions
         }
 
@@ -24,6 +22,7 @@ main =
 
 type Page
     = PageHome
+    | PageNotFound
     | PageCards
     | PageCard String
     | PagePrizes
@@ -31,11 +30,22 @@ type Page
     | PageUser String
 
 
+ensurePage : Maybe Page -> Page
+ensurePage page =
+    case page of
+        Nothing ->
+            PageNotFound
+        Just page ->
+            page
+
 toHash : Page -> String
 toHash page =
     case page of
         PageHome ->
             "#/home"
+
+        PageNotFound ->
+            "#/404"
 
         PageCards ->
             "#/cards"
@@ -53,20 +63,15 @@ toHash page =
             "#/user/" ++ id
 
 
-hashParser : Navigation.Location -> Result String Page
-hashParser location =
-    UrlParser.parse identity pageParser (String.dropLeft 2 location.hash)
-
-
 pageParser : Parser (Page -> a) a
 pageParser =
     oneOf
-        [ format PageHome (UrlParser.s "home")
-        , format PageCards (UrlParser.s "cards")
-        , format PageCard (UrlParser.s "card" </> UrlParser.string)
-        , format PagePrizes (UrlParser.s "prizes")
-        , format PagePrize (UrlParser.s "prize" </> UrlParser.string)
-        , format PageUser (UrlParser.s "user" </> UrlParser.string)
+        [ Url.map PageHome (Url.s "home")
+        , Url.map PageCards (Url.s "cards")
+        , Url.map PageCard (Url.s "card" </> Url.string)
+        , Url.map PagePrizes (Url.s "prizes")
+        , Url.map PagePrize (Url.s "prize" </> Url.string)
+        , Url.map PageUser (Url.s "user" </> Url.string)
         ]
 
 
@@ -86,6 +91,7 @@ type alias Model =
     , activeUser : User
     , userTakenCards : (List Card)
     , karma : (String, Int)
+    , popups : (List Popup)
     }
 
 
@@ -113,10 +119,14 @@ type alias Card =
     }
 
 
-init : Result String Page -> (Model, Cmd Msg)
-init result =
-    urlUpdate result
-        { page = PageHome
+type Popup
+    = ProfileMenu
+
+
+init : Navigation.Location -> (Model, Cmd Msg)
+init location =
+    (
+        { page = ensurePage (Url.parseHash pageParser location)
         , loggedIn = False
         , title = ""
         , cardText = ""
@@ -128,13 +138,17 @@ init result =
         , activeUser = (User "" "" "" "" 0 False)
         , userTakenCards = []
         , karma = ("", 0)
+        , popups = []
         }
+    , Cmd.none
+    )
 
 
 -- UPDATE
 
 type Msg
     = NoOp
+    | UrlChange Navigation.Location
     | CardText String
     | Login
     | Logout
@@ -151,6 +165,8 @@ type Msg
     | ShowVolunteers (List User)
     | HandleRemoveCard Card
     | AssignVolunteer Card User
+    | ShowProfileMenuPopup
+    | HideAllPopups
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -158,6 +174,11 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
+
+        UrlChange location ->
+            ( { model | page = ensurePage (Url.parseHash pageParser location) }
+            , Cmd.none
+            )
 
         CardText text ->
             ( { model | cardText = text }, Cmd.none )
@@ -236,17 +257,13 @@ update msg model =
         AssignVolunteer card user ->
             ( model, assignVolunteer { card = card, user = user } )
 
+        ShowProfileMenuPopup ->
+            ( { model | popups = Debug.log "show profile" ProfileMenu :: model.popups }, Cmd.none )
 
-
-
-urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
-urlUpdate result model =
-    case Debug.log "result" result of
-        Err _ ->
-            ( model, Navigation.modifyUrl (toHash model.page) )
-
-        Ok page ->
-            ( { model | page = page }, fetchData page )
+        HideAllPopups ->
+            if List.isEmpty model.popups
+            then ( model, Cmd.none )
+            else ( { model | popups = Debug.log "hide" [] }, Cmd.none )
 
 
 -- OUTGOING PORTS
@@ -297,6 +314,9 @@ fetchData page =
         PageHome ->
             fetchStreamCards "TODO port should recieve at least 1 arg :/"
 
+        PageNotFound ->
+            Cmd.none
+
         PageCards ->
             Cmd.none
 
@@ -323,19 +343,69 @@ fetchData page =
 
 -- VIEW
 
+mainColor : String
+mainColor = "#f2836b"
+
 view : Model -> Html Msg
 view model =
-    div []
-    [ div [ id "topbar" ]
-        [ a [ href (toHash PageHome) ]
-            [ img [ class "topbar__logo", src "besokind.jpg", width 48, height 48 ] [] ]
-        , a [ href (toHash (PageUser model.user.uid)) ]
-            [ img [ class "topbar__user-photo", src model.user.photoURL, width 48, height 48 ] [] ]
+    div [ onWithOptions "click" (Options True True) (Json.succeed HideAllPopups) ]
+    [ div
+        [ id "topbar"
+        , style
+            [ ("position", "fixed")
+            , ("top", "0")
+            , ("left", "0")
+            , ("right", "0")
+            , ("height", "60px")
+            , ("background", mainColor)
+            , ("border-radius", "0 0 8px 8px")
+            , ("visible", "false")
+            ]
+        ]
+        [ div []
+            [ img
+                [ onWithOptions
+                    "click"
+                    (Options True True)
+                    (Json.succeed
+                        (if (List.length model.popups) > 0
+                            then HideAllPopups
+                            else ShowProfileMenuPopup))
+                , class "topbar__user-photo"
+                , src model.user.photoURL
+                , width 48
+                , height 48
+                , style [ ("border-radius", "100%") ]
+                ]
+                []
+            , if (List.member ProfileMenu model.popups)
+                then viewProfileMenu model
+                else span [] []
+            ]
         , if model.loggedIn
-            then button [ class "topbar__logout-btn", onClick Logout ] [ text "Выйти" ]
+            then span [] []
             else button [ class "topbar__login-btn", onClick Login ] [ text "Войти" ]
         ]
-    , div [ id "container" ]
+    , div
+        [ id "nav"
+        , width 120
+        , style
+            [ ("position", "fixed")
+            , ("width", "120px")
+            , ("margin", "70px 20px 0 20px") -- margin top = topbar height + 10px
+            , ("float", "left")
+            ]
+        ]
+        [ a [ href (toHash PageHome) ] [ text "Дела" ]
+        , div [] [ text "Призы" ]
+        , div [] [ text "Рейтинг" ]
+        ]
+    , div
+        [ id "container"
+        , style
+            [ ("margin-left", "160px") -- nav's width + left + right margin
+            ]
+        ]
         [ if model.loggedIn
             then viewCreateCard model
             else div [] []
@@ -348,6 +418,10 @@ viewPage : Model -> Html Msg
 viewPage model =
     case model.page of
         PageHome ->
+            viewCards model model.cards
+
+        PageNotFound ->
+            -- TODO: сделать 404
             viewCards model model.cards
 
         PageCards ->
@@ -364,7 +438,7 @@ viewPage model =
 
         PageUser id ->
             div []
-            [ viewProfile model.activeUser
+            [ viewProfile model.loggedIn model.activeUser
             , div [] [ text "Дела пользователя:" ]
             , viewCards model model.cards
             , div [] [ text "Волонтер в делах:" ]
@@ -378,7 +452,7 @@ viewCreateCard model =
     [ textarea
         [ placeholder "Какая помощь вам требуется?"
         , onInput CardText
-        , value model.cardText ]
+        , Html.Attributes.value model.cardText ]
         []
     , button [ onClick CreateCard ] [ text "Создать дело" ]
     ]
@@ -452,13 +526,28 @@ viewVolunteer card currentUser volunteer =
         ]
 
 
-viewProfile : User -> Html Msg
-viewProfile user =
+viewProfile : Bool -> User -> Html Msg
+viewProfile loggedIn user =
     div []
     [ img [ src user.photoURL ] []
     , span [] [ text user.name ]
     , span [] [ text (toString user.karma) ]
+    , if loggedIn
+        then button [ class "topbar__logout-btn", onClick Logout ] [ text "Выйти" ]
+        else span [] []
     ]
+
+
+viewProfileMenu : Model -> Html Msg
+viewProfileMenu model =
+    ul
+        [ style
+            [ 
+            ]
+        ]
+        [ li [] [ a [ href (toHash (PageUser model.user.uid)) ] [ text "Открыть профиль" ] ]
+        , li [ onClick Logout ] [ text "Выйти" ]
+        ]
 
 
 viewLink : Page -> String -> Html msg
