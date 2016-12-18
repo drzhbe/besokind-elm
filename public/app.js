@@ -10449,11 +10449,12 @@ var _user$project$Main$pageParser = _evancz$url_parser$UrlParser$oneOf(
 		}
 	});
 var _user$project$Main$init = function (location) {
+	var page = _user$project$Main$ensurePage(
+		A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, location));
 	return {
 		ctor: '_Tuple2',
 		_0: {
-			page: _user$project$Main$ensurePage(
-				A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, location)),
+			page: page,
 			loggedIn: false,
 			title: '',
 			cardText: '',
@@ -10467,7 +10468,7 @@ var _user$project$Main$init = function (location) {
 			karma: {ctor: '_Tuple2', _0: '', _1: 0},
 			popups: {ctor: '[]'}
 		},
-		_1: _elm_lang$core$Platform_Cmd$none
+		_1: _user$project$Main$fetchData(page)
 	};
 };
 var _user$project$Main$ProfileMenu = {ctor: 'ProfileMenu'};
@@ -10478,15 +10479,14 @@ var _user$project$Main$update = F2(
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'UrlChange':
+				var page = _user$project$Main$ensurePage(
+					A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, _p5._0));
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{
-							page: _user$project$Main$ensurePage(
-								A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, _p5._0))
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
+						{page: page}),
+					_1: _user$project$Main$fetchData(page)
 				};
 			case 'CardText':
 				return {
@@ -11219,56 +11219,6 @@ var _user$project$Main$viewPage = function (model) {
 				});
 	}
 };
-var _user$project$Main$viewProfileMenu = function (model) {
-	return A2(
-		_elm_lang$html$Html$ul,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$style(
-				{ctor: '[]'}),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$li,
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$a,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$href(
-								_user$project$Main$toHash(
-									_user$project$Main$PageUser(model.user.uid))),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Открыть профиль'),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$li,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Logout),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Выйти'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {ctor: '[]'}
-			}
-		});
-};
 var _user$project$Main$Login = {ctor: 'Login'};
 var _user$project$Main$CardText = function (a) {
 	return {ctor: 'CardText', _0: a};
@@ -11313,16 +11263,71 @@ var _user$project$Main$viewCreateCard = function (model) {
 			}
 		});
 };
+var _user$project$Main$UrlChange = function (a) {
+	return {ctor: 'UrlChange', _0: a};
+};
+var _user$project$Main$NoOp = {ctor: 'NoOp'};
+var _user$project$Main$viewProfileMenu = function (model) {
+	return A2(
+		_elm_lang$html$Html$ul,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{ctor: '[]'}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$li,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Events$onClick(
+						A2(_elm_lang$core$Debug$log, 'vaska', _user$project$Main$NoOp)),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$a,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$href(
+								_user$project$Main$toHash(
+									_user$project$Main$PageUser(model.user.uid))),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Открыть профиль'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$li,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Logout),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Выйти'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
 var _user$project$Main$view = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{
 			ctor: '::',
-			_0: A3(
-				_elm_lang$html$Html_Events$onWithOptions,
-				'click',
-				A2(_elm_lang$html$Html_Events$Options, true, true),
-				_elm_lang$core$Json_Decode$succeed(_user$project$Main$HideAllPopups)),
+			_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$HideAllPopups),
 			_1: {ctor: '[]'}
 		},
 		{
@@ -11559,14 +11564,10 @@ var _user$project$Main$view = function (model) {
 			}
 		});
 };
-var _user$project$Main$UrlChange = function (a) {
-	return {ctor: 'UrlChange', _0: a};
-};
 var _user$project$Main$main = A2(
 	_elm_lang$navigation$Navigation$program,
 	_user$project$Main$UrlChange,
 	{init: _user$project$Main$init, view: _user$project$Main$view, update: _user$project$Main$update, subscriptions: _user$project$Main$subscriptions})();
-var _user$project$Main$NoOp = {ctor: 'NoOp'};
 
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};

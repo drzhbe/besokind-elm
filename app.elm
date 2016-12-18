@@ -125,23 +125,26 @@ type Popup
 
 init : Navigation.Location -> (Model, Cmd Msg)
 init location =
-    (
-        { page = ensurePage (Url.parseHash pageParser location)
-        , loggedIn = False
-        , title = ""
-        , cardText = ""
-        , place = ""
-        , user = (User "" "" "" "" 0 False)
-        , cards = []
-        , activeCard = (Card "" "" "" "" 0 0 "" "" "" "")
-        , activeCardVolunteers = []
-        , activeUser = (User "" "" "" "" 0 False)
-        , userTakenCards = []
-        , karma = ("", 0)
-        , popups = []
-        }
-    , Cmd.none
-    )
+    let
+        page = ensurePage (Url.parseHash pageParser location)
+    in
+        (
+            { page = page
+            , loggedIn = False
+            , title = ""
+            , cardText = ""
+            , place = ""
+            , user = (User "" "" "" "" 0 False)
+            , cards = []
+            , activeCard = (Card "" "" "" "" 0 0 "" "" "" "")
+            , activeCardVolunteers = []
+            , activeUser = (User "" "" "" "" 0 False)
+            , userTakenCards = []
+            , karma = ("", 0)
+            , popups = []
+            }
+        , fetchData page
+        )
 
 
 -- UPDATE
@@ -176,9 +179,12 @@ update msg model =
             ( model, Cmd.none )
 
         UrlChange location ->
-            ( { model | page = ensurePage (Url.parseHash pageParser location) }
-            , Cmd.none
-            )
+            let
+                page = ensurePage (Url.parseHash pageParser location)
+            in
+                ( { model | page = page }
+                , fetchData page
+                )
 
         CardText text ->
             ( { model | cardText = text }, Cmd.none )
@@ -263,7 +269,7 @@ update msg model =
         HideAllPopups ->
             if List.isEmpty model.popups
             then ( model, Cmd.none )
-            else ( { model | popups = Debug.log "hide" [] }, Cmd.none )
+            else ( { model | popups = [] }, Cmd.none )
 
 
 -- OUTGOING PORTS
@@ -348,7 +354,7 @@ mainColor = "#f2836b"
 
 view : Model -> Html Msg
 view model =
-    div [ onWithOptions "click" (Options True True) (Json.succeed HideAllPopups) ]
+    div [ onClick HideAllPopups ]
     [ div
         [ id "topbar"
         , style
