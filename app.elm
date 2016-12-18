@@ -352,6 +352,39 @@ fetchData page =
 mainColor : String
 mainColor = "#f2836b"
 
+
+viewPage : Model -> Html Msg
+viewPage model =
+    case model.page of
+        PageHome ->
+            viewCards model model.cards
+
+        PageNotFound ->
+            -- TODO: сделать 404
+            viewCards model model.cards
+
+        PageCards ->
+            viewCards model model.cards
+
+        PageCard id ->
+            viewCardFull model model.activeCard
+
+        PagePrizes ->
+            viewCards model model.cards
+
+        PagePrize id ->
+            viewCards model model.cards
+
+        PageUser id ->
+            div []
+            [ viewProfile model.loggedIn model.activeUser
+            , div [] [ text "Дела пользователя:" ]
+            , viewCards model model.cards
+            , div [] [ text "Волонтер в делах:" ]
+            , viewCards model model.userTakenCards
+            ]
+
+
 view : Model -> Html Msg
 view model =
     div [ onClick HideAllPopups ]
@@ -418,38 +451,6 @@ view model =
         , viewPage model
         ]
     ]
-
-
-viewPage : Model -> Html Msg
-viewPage model =
-    case model.page of
-        PageHome ->
-            viewCards model model.cards
-
-        PageNotFound ->
-            -- TODO: сделать 404
-            viewCards model model.cards
-
-        PageCards ->
-            viewCards model model.cards
-
-        PageCard id ->
-            viewCardFull model model.activeCard
-
-        PagePrizes ->
-            viewCards model model.cards
-
-        PagePrize id ->
-            viewCards model model.cards
-
-        PageUser id ->
-            div []
-            [ viewProfile model.loggedIn model.activeUser
-            , div [] [ text "Дела пользователя:" ]
-            , viewCards model model.cards
-            , div [] [ text "Волонтер в делах:" ]
-            , viewCards model model.userTakenCards
-            ]
 
 
 viewCreateCard : Model -> Html Msg
@@ -548,11 +549,18 @@ viewProfileMenu : Model -> Html Msg
 viewProfileMenu model =
     ul
         [ style
-            [ 
+            [ ("position", "absolute")
+            , ("right", "10px")
+            , ("top", "70px") -- 60 topbar + 10 margin
+            , ("width", "180px")
+            , ("background", "white")
+            , ("margin", "0")
+            , ("padding", "10px")
+            , ("border-radius", "5px")
             ]
         ]
-        [ li [] [ a [ href (toHash (PageUser model.user.uid)) ] [ text "Открыть профиль" ] ]
-        , li [ onClick Logout ] [ text "Выйти" ]
+        [ li [] [ a [ href (toHash (PageUser model.user.uid)), class "light-btn" ] [ text "Открыть профиль" ] ]
+        , li [ onClick Logout, class "light-btn" ] [ text "Выйти" ]
         ]
 
 
