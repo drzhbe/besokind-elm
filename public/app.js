@@ -9788,7 +9788,11 @@ var _user$project$Main$textContentDecoder = A2(
 		}
 	},
 	_elm_lang$core$Json_Decode$string);
-var _user$project$Main$mainColor = '#f2836b';
+var _user$project$Main$linkColor = '#1da1f2';
+var _user$project$Main$lightestColor = '#999';
+var _user$project$Main$secondaryColor = '#555';
+var _user$project$Main$darkestColor = '#333';
+var _user$project$Main$brandColor = '#f2836b';
 var _user$project$Main$toHash = function (page) {
 	var _p0 = page;
 	switch (_p0.ctor) {
@@ -9814,18 +9818,9 @@ var _user$project$Main$viewLink = F2(
 			_elm_lang$html$Html$a,
 			{
 				ctor: '::',
-				_0: _elm_lang$html$Html_Attributes$style(
-					{
-						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: 'padding', _1: '0 20px'},
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$href(
-						_user$project$Main$toHash(page)),
-					_1: {ctor: '[]'}
-				}
+				_0: _elm_lang$html$Html_Attributes$href(
+					_user$project$Main$toHash(page)),
+				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
@@ -9846,7 +9841,7 @@ var _user$project$Main$logout = _elm_lang$core$Native_Platform.outgoingPort(
 var _user$project$Main$createCard = _elm_lang$core$Native_Platform.outgoingPort(
 	'createCard',
 	function (v) {
-		return {id: v.id, authorId: v.authorId, authorName: v.authorName, authorPhotoURL: v.authorPhotoURL, creationTime: v.creationTime, karma: v.karma, place: v.place, title: v.title, body: v.body, assignedTo: v.assignedTo};
+		return {id: v.id, authorId: v.authorId, authorName: v.authorName, authorPhotoURL: v.authorPhotoURL, creationTime: v.creationTime, creationTimeFriendly: v.creationTimeFriendly, karma: v.karma, place: v.place, title: v.title, body: v.body, assignedTo: v.assignedTo};
 	});
 var _user$project$Main$fetchCard = _elm_lang$core$Native_Platform.outgoingPort(
 	'fetchCard',
@@ -9931,19 +9926,19 @@ var _user$project$Main$takeCard = _elm_lang$core$Native_Platform.outgoingPort(
 	function (v) {
 		return {
 			user: {uid: v.user.uid, name: v.user.name, email: v.user.email, photoURL: v.user.photoURL, karma: v.user.karma, moderator: v.user.moderator},
-			card: {id: v.card.id, authorId: v.card.authorId, authorName: v.card.authorName, authorPhotoURL: v.card.authorPhotoURL, creationTime: v.card.creationTime, karma: v.card.karma, place: v.card.place, title: v.card.title, body: v.card.body, assignedTo: v.card.assignedTo}
+			card: {id: v.card.id, authorId: v.card.authorId, authorName: v.card.authorName, authorPhotoURL: v.card.authorPhotoURL, creationTime: v.card.creationTime, creationTimeFriendly: v.card.creationTimeFriendly, karma: v.card.karma, place: v.card.place, title: v.card.title, body: v.card.body, assignedTo: v.card.assignedTo}
 		};
 	});
 var _user$project$Main$removeCard = _elm_lang$core$Native_Platform.outgoingPort(
 	'removeCard',
 	function (v) {
-		return {id: v.id, authorId: v.authorId, authorName: v.authorName, authorPhotoURL: v.authorPhotoURL, creationTime: v.creationTime, karma: v.karma, place: v.place, title: v.title, body: v.body, assignedTo: v.assignedTo};
+		return {id: v.id, authorId: v.authorId, authorName: v.authorName, authorPhotoURL: v.authorPhotoURL, creationTime: v.creationTime, creationTimeFriendly: v.creationTimeFriendly, karma: v.karma, place: v.place, title: v.title, body: v.body, assignedTo: v.assignedTo};
 	});
 var _user$project$Main$assignVolunteer = _elm_lang$core$Native_Platform.outgoingPort(
 	'assignVolunteer',
 	function (v) {
 		return {
-			card: {id: v.card.id, authorId: v.card.authorId, authorName: v.card.authorName, authorPhotoURL: v.card.authorPhotoURL, creationTime: v.card.creationTime, karma: v.card.karma, place: v.card.place, title: v.card.title, body: v.card.body, assignedTo: v.card.assignedTo},
+			card: {id: v.card.id, authorId: v.card.authorId, authorName: v.card.authorName, authorPhotoURL: v.card.authorPhotoURL, creationTime: v.card.creationTime, creationTimeFriendly: v.card.creationTimeFriendly, karma: v.card.karma, place: v.card.place, title: v.card.title, body: v.card.body, assignedTo: v.card.assignedTo},
 			user: {uid: v.user.uid, name: v.user.name, email: v.user.email, photoURL: v.user.photoURL, karma: v.user.karma, moderator: v.user.moderator}
 		};
 	});
@@ -10001,31 +9996,36 @@ var _user$project$Main$showCards = _elm_lang$core$Native_Platform.incomingPort(
 											function (creationTime) {
 												return A2(
 													_elm_lang$core$Json_Decode$andThen,
-													function (karma) {
+													function (creationTimeFriendly) {
 														return A2(
 															_elm_lang$core$Json_Decode$andThen,
-															function (place) {
+															function (karma) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
-																	function (title) {
+																	function (place) {
 																		return A2(
 																			_elm_lang$core$Json_Decode$andThen,
-																			function (body) {
+																			function (title) {
 																				return A2(
 																					_elm_lang$core$Json_Decode$andThen,
-																					function (assignedTo) {
-																						return _elm_lang$core$Json_Decode$succeed(
-																							{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																					function (body) {
+																						return A2(
+																							_elm_lang$core$Json_Decode$andThen,
+																							function (assignedTo) {
+																								return _elm_lang$core$Json_Decode$succeed(
+																									{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, creationTimeFriendly: creationTimeFriendly, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																							},
+																							A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
 																					},
-																					A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
+																					A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
 																			},
-																			A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
+																			A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
 																	},
-																	A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
+																	A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
 															},
-															A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
+															A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
 													},
-													A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
+													A2(_elm_lang$core$Json_Decode$field, 'creationTimeFriendly', _elm_lang$core$Json_Decode$string));
 											},
 											A2(_elm_lang$core$Json_Decode$field, 'creationTime', _elm_lang$core$Json_Decode$float));
 									},
@@ -10055,31 +10055,36 @@ var _user$project$Main$addCardToList = _elm_lang$core$Native_Platform.incomingPo
 										function (creationTime) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (karma) {
+												function (creationTimeFriendly) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (place) {
+														function (karma) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (title) {
+																function (place) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		function (body) {
+																		function (title) {
 																			return A2(
 																				_elm_lang$core$Json_Decode$andThen,
-																				function (assignedTo) {
-																					return _elm_lang$core$Json_Decode$succeed(
-																						{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																				function (body) {
+																					return A2(
+																						_elm_lang$core$Json_Decode$andThen,
+																						function (assignedTo) {
+																							return _elm_lang$core$Json_Decode$succeed(
+																								{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, creationTimeFriendly: creationTimeFriendly, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																						},
+																						A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
 																				},
-																				A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
+																				A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
 																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
+																		A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
+												A2(_elm_lang$core$Json_Decode$field, 'creationTimeFriendly', _elm_lang$core$Json_Decode$string));
 										},
 										A2(_elm_lang$core$Json_Decode$field, 'creationTime', _elm_lang$core$Json_Decode$float));
 								},
@@ -10109,31 +10114,36 @@ var _user$project$Main$cardFetched = _elm_lang$core$Native_Platform.incomingPort
 										function (creationTime) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (karma) {
+												function (creationTimeFriendly) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (place) {
+														function (karma) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (title) {
+																function (place) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		function (body) {
+																		function (title) {
 																			return A2(
 																				_elm_lang$core$Json_Decode$andThen,
-																				function (assignedTo) {
-																					return _elm_lang$core$Json_Decode$succeed(
-																						{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																				function (body) {
+																					return A2(
+																						_elm_lang$core$Json_Decode$andThen,
+																						function (assignedTo) {
+																							return _elm_lang$core$Json_Decode$succeed(
+																								{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, creationTimeFriendly: creationTimeFriendly, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																						},
+																						A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
 																				},
-																				A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
+																				A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
 																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
+																		A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
+												A2(_elm_lang$core$Json_Decode$field, 'creationTimeFriendly', _elm_lang$core$Json_Decode$string));
 										},
 										A2(_elm_lang$core$Json_Decode$field, 'creationTime', _elm_lang$core$Json_Decode$float));
 								},
@@ -10233,31 +10243,36 @@ var _user$project$Main$userTakenCardsFetched = _elm_lang$core$Native_Platform.in
 											function (creationTime) {
 												return A2(
 													_elm_lang$core$Json_Decode$andThen,
-													function (karma) {
+													function (creationTimeFriendly) {
 														return A2(
 															_elm_lang$core$Json_Decode$andThen,
-															function (place) {
+															function (karma) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
-																	function (title) {
+																	function (place) {
 																		return A2(
 																			_elm_lang$core$Json_Decode$andThen,
-																			function (body) {
+																			function (title) {
 																				return A2(
 																					_elm_lang$core$Json_Decode$andThen,
-																					function (assignedTo) {
-																						return _elm_lang$core$Json_Decode$succeed(
-																							{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																					function (body) {
+																						return A2(
+																							_elm_lang$core$Json_Decode$andThen,
+																							function (assignedTo) {
+																								return _elm_lang$core$Json_Decode$succeed(
+																									{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, creationTimeFriendly: creationTimeFriendly, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																							},
+																							A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
 																					},
-																					A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
+																					A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
 																			},
-																			A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
+																			A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
 																	},
-																	A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
+																	A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
 															},
-															A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
+															A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
 													},
-													A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
+													A2(_elm_lang$core$Json_Decode$field, 'creationTimeFriendly', _elm_lang$core$Json_Decode$string));
 											},
 											A2(_elm_lang$core$Json_Decode$field, 'creationTime', _elm_lang$core$Json_Decode$float));
 									},
@@ -10287,31 +10302,36 @@ var _user$project$Main$cardRemoved = _elm_lang$core$Native_Platform.incomingPort
 										function (creationTime) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (karma) {
+												function (creationTimeFriendly) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (place) {
+														function (karma) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (title) {
+																function (place) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		function (body) {
+																		function (title) {
 																			return A2(
 																				_elm_lang$core$Json_Decode$andThen,
-																				function (assignedTo) {
-																					return _elm_lang$core$Json_Decode$succeed(
-																						{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																				function (body) {
+																					return A2(
+																						_elm_lang$core$Json_Decode$andThen,
+																						function (assignedTo) {
+																							return _elm_lang$core$Json_Decode$succeed(
+																								{id: id, authorId: authorId, authorName: authorName, authorPhotoURL: authorPhotoURL, creationTime: creationTime, creationTimeFriendly: creationTimeFriendly, karma: karma, place: place, title: title, body: body, assignedTo: assignedTo});
+																						},
+																						A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
 																				},
-																				A2(_elm_lang$core$Json_Decode$field, 'assignedTo', _elm_lang$core$Json_Decode$string));
+																				A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
 																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'body', _elm_lang$core$Json_Decode$string));
+																		A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'title', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'place', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'karma', _elm_lang$core$Json_Decode$int));
+												A2(_elm_lang$core$Json_Decode$field, 'creationTimeFriendly', _elm_lang$core$Json_Decode$string));
 										},
 										A2(_elm_lang$core$Json_Decode$field, 'creationTime', _elm_lang$core$Json_Decode$float));
 								},
@@ -10363,7 +10383,9 @@ var _user$project$Main$Card = function (a) {
 							return function (h) {
 								return function (i) {
 									return function (j) {
-										return {id: a, authorId: b, authorName: c, authorPhotoURL: d, creationTime: e, karma: f, place: g, title: h, body: i, assignedTo: j};
+										return function (k) {
+											return {id: a, authorId: b, authorName: c, authorPhotoURL: d, creationTime: e, creationTimeFriendly: f, karma: g, place: h, title: i, body: j, assignedTo: k};
+										};
 									};
 								};
 							};
@@ -10383,6 +10405,131 @@ var _user$project$Main$PagePrize = function (a) {
 var _user$project$Main$PagePrizes = {ctor: 'PagePrizes'};
 var _user$project$Main$PageCard = function (a) {
 	return {ctor: 'PageCard', _0: a};
+};
+var _user$project$Main$viewCardHeader = function (card) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('list-card-header'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$a,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$href(
+						_user$project$Main$toHash(
+							_user$project$Main$PageUser(card.authorId))),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$img,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$src(card.authorPhotoURL),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$width(48),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$height(48),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'float', _1: 'left'},
+												_1: {ctor: '[]'}
+											}),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						},
+						{ctor: '[]'}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$div,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'height', _1: '40px'},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'padding-top', _1: '8px'},
+									_1: {
+										ctor: '::',
+										_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '58px'},
+										_1: {ctor: '[]'}
+									}
+								}
+							}),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$darkestColor},
+										_1: {
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A2(
+									_user$project$Main$viewLink,
+									_user$project$Main$PageUser(card.authorId),
+									card.authorName),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$style(
+										{
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$lightestColor},
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: A2(
+										_user$project$Main$viewLink,
+										_user$project$Main$PageCard(card.id),
+										card.creationTimeFriendly),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
 };
 var _user$project$Main$PageCards = {ctor: 'PageCards'};
 var _user$project$Main$PageNotFound = {ctor: 'PageNotFound'};
@@ -10465,7 +10612,7 @@ var _user$project$Main$init = function (location) {
 			place: '',
 			user: A6(_user$project$Main$User, '', '', '', '', 0, false),
 			cards: {ctor: '[]'},
-			activeCard: _user$project$Main$Card('')('')('')('')(0)(0)('')('')('')(''),
+			activeCard: _user$project$Main$Card('')('')('')('')(0)('')(0)('')('')('')(''),
 			activeCardVolunteers: {ctor: '[]'},
 			activeUser: A6(_user$project$Main$User, '', '', '', '', 0, false),
 			userTakenCards: {ctor: '[]'},
@@ -10531,7 +10678,7 @@ var _user$project$Main$update = F2(
 						model,
 						{cardText: ''}),
 					_1: _user$project$Main$createCard(
-						{id: '', authorId: model.user.uid, authorName: model.user.name, authorPhotoURL: model.user.photoURL, creationTime: 0, karma: 0, place: model.place, title: model.title, body: model.cardText, assignedTo: ''})
+						{id: '', authorId: model.user.uid, authorName: model.user.name, authorPhotoURL: model.user.photoURL, creationTime: 0, creationTimeFriendly: '', karma: 0, place: model.place, title: model.title, body: model.cardText, assignedTo: ''})
 				};
 			case 'ShowCards':
 				return {
@@ -10802,47 +10949,7 @@ var _user$project$Main$viewCard = F2(
 			},
 			{
 				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('list-card-header'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$img,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$src(card.authorPhotoURL),
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$width(48),
-									_1: {
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$height(48),
-										_1: {ctor: '[]'}
-									}
-								}
-							},
-							{ctor: '[]'}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_user$project$Main$viewLink,
-								_user$project$Main$PageCard(card.id),
-								_elm_lang$core$Basics$toString(card.creationTime)),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_user$project$Main$viewLink,
-									_user$project$Main$PageUser(card.authorId),
-									card.authorName),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
+				_0: _user$project$Main$viewCardHeader(card),
 				_1: {
 					ctor: '::',
 					_0: A2(
@@ -10897,51 +11004,7 @@ var _user$project$Main$viewCardFull = F2(
 			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('full-card-header'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$img,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$src(card.authorPhotoURL),
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$width(48),
-									_1: {
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$height(48),
-										_1: {ctor: '[]'}
-									}
-								}
-							},
-							{ctor: '[]'}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_user$project$Main$viewLink,
-								_user$project$Main$PageCard(card.id),
-								_elm_lang$core$Basics$toString(card.creationTime)),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$span,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(card.authorName),
-										_1: {ctor: '[]'}
-									}),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
+				_0: _user$project$Main$viewCardHeader(card),
 				_1: {
 					ctor: '::',
 					_0: A2(
@@ -11002,7 +11065,7 @@ var _user$project$Main$viewCardFull = F2(
 									}),
 								_1: {
 									ctor: '::',
-									_0: ((!_elm_lang$core$String$isEmpty(model.user.uid)) && (!_elm_lang$core$Native_Utils.eq(model.user.uid, card.authorId))) ? A2(
+									_0: ((!_elm_lang$core$String$isEmpty(model.user.uid)) && ((!_elm_lang$core$Native_Utils.eq(model.user.uid, card.authorId)) && (!A2(_elm_lang$core$List$member, model.user, model.activeCardVolunteers)))) ? A2(
 										_elm_lang$html$Html$button,
 										{
 											ctor: '::',
@@ -11401,7 +11464,7 @@ var _user$project$Main$view = function (model) {
 												_0: {ctor: '_Tuple2', _0: 'height', _1: '46px'},
 												_1: {
 													ctor: '::',
-													_0: {ctor: '_Tuple2', _0: 'background', _1: _user$project$Main$mainColor},
+													_0: {ctor: '_Tuple2', _0: 'background', _1: _user$project$Main$brandColor},
 													_1: {
 														ctor: '::',
 														_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '0 0 8px 8px'},
@@ -11498,14 +11561,18 @@ var _user$project$Main$view = function (model) {
 												_0: {ctor: '_Tuple2', _0: 'color', _1: 'white'},
 												_1: {
 													ctor: '::',
-													_0: {ctor: '_Tuple2', _0: 'height', _1: '38px'},
+													_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
 													_1: {
 														ctor: '::',
-														_0: {ctor: '_Tuple2', _0: 'line-height', _1: '38px'},
+														_0: {ctor: '_Tuple2', _0: 'height', _1: '38px'},
 														_1: {
 															ctor: '::',
-															_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
-															_1: {ctor: '[]'}
+															_0: {ctor: '_Tuple2', _0: 'line-height', _1: '38px'},
+															_1: {
+																ctor: '::',
+																_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+																_1: {ctor: '[]'}
+															}
 														}
 													}
 												}

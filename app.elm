@@ -111,6 +111,7 @@ type alias Card =
     , authorName : String
     , authorPhotoURL : String
     , creationTime : Float
+    , creationTimeFriendly : String
     , karma : Int
     , place : String
     , title : String
@@ -136,7 +137,7 @@ init location =
             , place = ""
             , user = (User "" "" "" "" 0 False)
             , cards = []
-            , activeCard = (Card "" "" "" "" 0 0 "" "" "" "")
+            , activeCard = (Card "" "" "" "" 0 "" 0 "" "" "" "")
             , activeCardVolunteers = []
             , activeUser = (User "" "" "" "" 0 False)
             , userTakenCards = []
@@ -215,6 +216,7 @@ update msg model =
                 , authorName = model.user.name
                 , authorPhotoURL = model.user.photoURL
                 , creationTime = 0
+                , creationTimeFriendly = ""
                 , karma = 0
                 , place = model.place
                 , title = model.title
@@ -356,8 +358,21 @@ fetchData page =
 
 -- VIEW
 
-mainColor : String
-mainColor = "#f2836b"
+-- coral
+brandColor : String
+brandColor = "#f2836b"
+-- almbost black
+darkestColor : String
+darkestColor = "#333"
+-- gray
+secondaryColor : String
+secondaryColor = "#555"
+-- lightest gray
+lightestColor : String
+lightestColor = "#999"
+-- blue
+linkColor : String
+linkColor = "#1da1f2"
 
 
 viewPage : Model -> Html Msg
@@ -403,7 +418,7 @@ view model =
             , ("left", "0")
             , ("right", "0")
             , ("height", "46px")
-            , ("background", mainColor)
+            , ("background", brandColor)
             , ("border-radius", "0 0 8px 8px")
             , ("visible", "false")
             ]
@@ -440,6 +455,7 @@ view model =
                     , style
                         [ ("margin", "4px 10px 4px 4px")
                         , ("color", "white")
+                        , ("font-weight", "500")
                         , ("height", "38px")
                         , ("line-height", "38px")
                         , ("text-align", "center")
@@ -495,16 +511,60 @@ viewCards model cards =
 viewCard : Model -> Card -> Html Msg
 viewCard model card =
     li [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "") ]
-    [ div [ class "list-card-header" ]
-        [ img [ src card.authorPhotoURL, width 48, height 48 ] []
-        , viewLink (PageCard card.id) (toString card.creationTime)
-        , viewLink (PageUser card.authorId) card.authorName
-        ]
+    [ viewCardHeader card
     , div [ class "list-card-title"] [ text card.title ]
     , div [ class "list-card-body"] [ text card.body ]
     , viewCardKarmaPrice "list" model card
     ]
 
+
+viewCardFull : Model -> Card -> Html Msg
+viewCardFull model card =
+    div []
+    [ viewCardHeader card
+    , div [ class "full-card-title"] [ text card.title ]
+    , div [ class "full-card-body"] [ text card.body ]
+    , viewCardKarmaPrice "full" model card
+    , div []
+        [ span [] [ text "Желающие помочь:" ]
+        , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
+        ]
+    , if not (String.isEmpty model.user.uid)
+        && model.user.uid /= card.authorId
+        && not (List.member model.user model.activeCardVolunteers)
+        then button [ onClick (TakeCard model.user card) ] [ text "Помочь" ]
+        else span [] []
+    , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
+        then button [ onClick (RemoveCard card) ] [ text "Удалить" ]
+        else span [] []
+    ]
+
+
+viewCardHeader : Card -> Html Msg
+viewCardHeader card =
+    div [ class "list-card-header" ]
+        [ a [ href (toHash (PageUser card.authorId)) ]
+            [ img
+                [ src card.authorPhotoURL
+                , width 48, height 48
+                , style [ ("float", "left") ]
+                ] []
+            ]
+        , div
+            [ style
+                [ ("height", "40px")
+                , ("padding-top", "8px")
+                , ("margin-left", "58px")
+                ]
+            ]
+            [ div
+                [ style [ ("color", darkestColor) , ("font-weight", "500") ] ]
+                [ viewLink (PageUser card.authorId) card.authorName ]
+            , div
+                [ style [ ("color", lightestColor) ] ]
+                [ viewLink (PageCard card.id) card.creationTimeFriendly ]
+            ]
+        ]
 
 viewCardKarmaPrice : String -> Model -> Card -> Html Msg
 viewCardKarmaPrice loc model card =
@@ -517,29 +577,6 @@ viewCardKarmaPrice loc model card =
             [ text (toString card.karma) ]
         ]
 
-
-viewCardFull : Model -> Card -> Html Msg
-viewCardFull model card =
-    div []
-    [ div [ class "full-card-header" ]
-        [ img [ src card.authorPhotoURL, width 48, height 48 ] []
-        , viewLink (PageCard card.id) (toString card.creationTime)
-        , span [] [ text card.authorName ]
-        ]
-    , div [ class "full-card-title"] [ text card.title ]
-    , div [ class "full-card-body"] [ text card.body ]
-    , viewCardKarmaPrice "full" model card
-    , div []
-        [ span [] [ text "Желающие помочь:" ]
-        , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
-        ]
-    , if not (String.isEmpty model.user.uid) && model.user.uid /= card.authorId
-        then button [ onClick (TakeCard model.user card) ] [ text "Помочь" ]
-        else span [] []
-    , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
-        then button [ onClick (RemoveCard card) ] [ text "Удалить" ]
-        else span [] []
-    ]
 
 
 viewVolunteer : Card -> User -> User -> Html Msg
@@ -589,7 +626,7 @@ viewProfileMenu model =
 
 viewLink : Page -> String -> Html msg
 viewLink page description =
-  a [ style [ ("padding", "0 20px") ], href (toHash page) ] [ text description ]
+  a [ href (toHash page) ] [ text description ]
 
 
 textContentDecoder : Json.Decoder String

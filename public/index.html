@@ -5,14 +5,18 @@
 <style>
   body {
     margin: 0;
-    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-family: -apple-system,BlinkMacSystemFont,Roboto,Open Sans,Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 16px;
   }
   ul {
     list-style: none;
+    padding: 0;
+    margin: 0;
   }
   a {
     text-decoration: none;
-    color: #1da1f2;
+    color: inherit;
   }
   .light-btn {
     color: #555;
@@ -45,6 +49,7 @@
 <div id="main"></div>
 
 <script src="https://www.gstatic.com/firebasejs/3.4.1/firebase.js"></script>
+<script src='date-fns-distance.js'></script>
 <script src="app.js"></script>
 <script>
   var config = {
@@ -65,17 +70,24 @@
 
 
   function addCardToList(card) {
-    app.ports.addCardToList.send(card.val());
+    card = card.val();
+    card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+    app.ports.addCardToList.send(card);
   }
 
 
+  /*
+    depends on `dateFnsDistanceInWords`
+  */
   function getCards(callback) {
     // todo не работает такая фильтрация
     // .orderByChild('assignedTo').equalTo('')
     dbCards.limitToLast(12).once('value', function(snapshot) {
       var cards = [];
       snapshot.forEach(function(card) {
-        cards.push(card.val());
+        var card = card.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        cards.push();
       });
       app.ports.showCards.send(cards);
 
@@ -143,17 +155,15 @@
     }
   });
 
-  app.ports.logout.subscribe(function() {
-    auth.signOut();
-  });
+  app.ports.logout.subscribe(auth.signOut);
 
-  app.ports.fetchStreamCards.subscribe(function() {
-    getCards();
-  });
+  app.ports.fetchStreamCards.subscribe(getCards);
 
   app.ports.fetchCard.subscribe(function(id) {
     database.ref('cards/' + id).once('value', function(card) {
-      app.ports.cardFetched.send(card.val());
+      card = card.val();
+      card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+      app.ports.cardFetched.send(card);
     });
   });
 
@@ -174,7 +184,9 @@
     dbCards.orderByChild('authorId').equalTo(id).once('value', function(snapshot) {
       var cards = [];
       snapshot.forEach(function(card) {
-        cards.push(card.val());
+        card = card.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        cards.push(card);
       });
       app.ports.showCards.send(cards);
     });
@@ -211,7 +223,9 @@
     database.ref('user-taken-cards/' + userId).limitToLast(12).once('value', function(snapshot) {
       var cards = [];
       snapshot.forEach(function(card) {
-        cards.push(card.val());
+        card = card.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        cards.push(card);
       });
       app.ports.userTakenCardsFetched.send(cards);
     });
