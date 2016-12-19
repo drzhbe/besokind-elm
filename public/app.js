@@ -10448,9 +10448,13 @@ var _user$project$Main$pageParser = _evancz$url_parser$UrlParser$oneOf(
 			}
 		}
 	});
+var _user$project$Main$defaultPage = function (page) {
+	return _elm_lang$core$Native_Utils.eq(page, _user$project$Main$PageNotFound) ? _user$project$Main$PageHome : page;
+};
 var _user$project$Main$init = function (location) {
-	var page = _user$project$Main$ensurePage(
-		A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, location));
+	var page = _user$project$Main$defaultPage(
+		_user$project$Main$ensurePage(
+			A2(_evancz$url_parser$UrlParser$parseHash, _user$project$Main$pageParser, location)));
 	return {
 		ctor: '_Tuple2',
 		_0: {
@@ -11109,7 +11113,15 @@ var _user$project$Main$viewProfile = F2(
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html_Attributes$src(user.photoURL),
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$width(200),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$height(200),
+								_1: {ctor: '[]'}
+							}
+						}
 					},
 					{ctor: '[]'}),
 				_1: {
@@ -11227,10 +11239,10 @@ var _user$project$Main$viewProfileMenu = function (model) {
 					_0: {ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
 					_1: {
 						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: 'right', _1: '10px'},
+						_0: {ctor: '_Tuple2', _0: 'right', _1: '4px'},
 						_1: {
 							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: 'top', _1: '70px'},
+							_0: {ctor: '_Tuple2', _0: 'top', _1: '54px'},
 							_1: {
 								ctor: '::',
 								_0: {ctor: '_Tuple2', _0: 'width', _1: '180px'},
@@ -11246,7 +11258,11 @@ var _user$project$Main$viewProfileMenu = function (model) {
 											_1: {
 												ctor: '::',
 												_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '5px'},
-												_1: {ctor: '[]'}
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'border', _1: '1px solid #ddd'},
+													_1: {ctor: '[]'}
+												}
 											}
 										}
 									}
@@ -11382,7 +11398,7 @@ var _user$project$Main$view = function (model) {
 											_0: {ctor: '_Tuple2', _0: 'right', _1: '0'},
 											_1: {
 												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'height', _1: '60px'},
+												_0: {ctor: '_Tuple2', _0: 'height', _1: '46px'},
 												_1: {
 													ctor: '::',
 													_0: {ctor: '_Tuple2', _0: 'background', _1: _user$project$Main$mainColor},
@@ -11406,7 +11422,7 @@ var _user$project$Main$view = function (model) {
 				},
 				{
 					ctor: '::',
-					_0: A2(
+					_0: model.loggedIn ? A2(
 						_elm_lang$html$Html$div,
 						{ctor: '[]'},
 						{
@@ -11431,17 +11447,21 @@ var _user$project$Main$view = function (model) {
 											_0: _elm_lang$html$Html_Attributes$src(model.user.photoURL),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$width(48),
+												_0: _elm_lang$html$Html_Attributes$width(38),
 												_1: {
 													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$height(48),
+													_0: _elm_lang$html$Html_Attributes$height(38),
 													_1: {
 														ctor: '::',
 														_0: _elm_lang$html$Html_Attributes$style(
 															{
 																ctor: '::',
 																_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '100%'},
-																_1: {ctor: '[]'}
+																_1: {
+																	ctor: '::',
+																	_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px'},
+																	_1: {ctor: '[]'}
+																}
 															}),
 														_1: {ctor: '[]'}
 													}
@@ -11459,30 +11479,48 @@ var _user$project$Main$view = function (model) {
 									{ctor: '[]'}),
 								_1: {ctor: '[]'}
 							}
-						}),
-					_1: {
-						ctor: '::',
-						_0: model.loggedIn ? A2(
-							_elm_lang$html$Html$span,
-							{ctor: '[]'},
-							{ctor: '[]'}) : A2(
-							_elm_lang$html$Html$button,
-							{
+						}) : A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('topbar__login-btn'),
+							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$class('topbar__login-btn'),
+								_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Login),
 								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Login),
+									_0: _elm_lang$html$Html_Attributes$style(
+										{
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px 10px 4px 4px'},
+											_1: {
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'color', _1: 'white'},
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'height', _1: '38px'},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'line-height', _1: '38px'},
+														_1: {
+															ctor: '::',
+															_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}
+										}),
 									_1: {ctor: '[]'}
 								}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text('Войти'),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}
+							}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Войти'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
 				}),
 			_1: {
 				ctor: '::',
@@ -11505,7 +11543,7 @@ var _user$project$Main$view = function (model) {
 											_0: {ctor: '_Tuple2', _0: 'width', _1: '120px'},
 											_1: {
 												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'margin', _1: '70px 20px 0 20px'},
+												_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 20px'},
 												_1: {
 													ctor: '::',
 													_0: {ctor: '_Tuple2', _0: 'float', _1: 'left'},
@@ -11569,7 +11607,7 @@ var _user$project$Main$view = function (model) {
 								_0: _elm_lang$html$Html_Attributes$style(
 									{
 										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'margin-left', _1: '160px'},
+										_0: {ctor: '_Tuple2', _0: 'margin', _1: '56px 4px 0 160px'},
 										_1: {ctor: '[]'}
 									}),
 								_1: {ctor: '[]'}

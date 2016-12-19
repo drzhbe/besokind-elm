@@ -126,7 +126,7 @@ type Popup
 init : Navigation.Location -> (Model, Cmd Msg)
 init location =
     let
-        page = ensurePage (Url.parseHash pageParser location)
+        page = defaultPage (ensurePage (Url.parseHash pageParser location))
     in
         (
             { page = page
@@ -145,6 +145,13 @@ init location =
             }
         , fetchData page
         )
+
+
+defaultPage : Page -> Page
+defaultPage page =
+    if page == PageNotFound
+    then PageHome
+    else page
 
 
 -- UPDATE
@@ -395,35 +402,50 @@ view model =
             , ("top", "0")
             , ("left", "0")
             , ("right", "0")
-            , ("height", "60px")
+            , ("height", "46px")
             , ("background", mainColor)
             , ("border-radius", "0 0 8px 8px")
             , ("visible", "false")
             ]
         ]
-        [ div []
-            [ img
-                [ onWithOptions
-                    "click"
-                    (Options True True)
-                    (Json.succeed
-                        (if (List.length model.popups) > 0
-                            then HideAllPopups
-                            else ShowProfileMenuPopup))
-                , class "topbar__user-photo"
-                , src model.user.photoURL
-                , width 48
-                , height 48
-                , style [ ("border-radius", "100%") ]
+        [ if model.loggedIn
+            then
+                div []
+                [ img
+                    [ onWithOptions
+                        "click"
+                        (Options True True)
+                        (Json.succeed
+                            (if (List.length model.popups) > 0
+                                then HideAllPopups
+                                else ShowProfileMenuPopup))
+                    , class "topbar__user-photo"
+                    , src model.user.photoURL
+                    , width 38
+                    , height 38
+                    , style
+                        [ ("border-radius", "100%")
+                        , ("margin", "4px")
+                        ]
+                    ]
+                    []
+                , if (List.member ProfileMenu model.popups)
+                    then viewProfileMenu model
+                    else span [] []
                 ]
-                []
-            , if (List.member ProfileMenu model.popups)
-                then viewProfileMenu model
-                else span [] []
-            ]
-        , if model.loggedIn
-            then span [] []
-            else button [ class "topbar__login-btn", onClick Login ] [ text "Войти" ]
+            else
+                div
+                    [ class "topbar__login-btn"
+                    , onClick Login
+                    , style
+                        [ ("margin", "4px 10px 4px 4px")
+                        , ("color", "white")
+                        , ("height", "38px")
+                        , ("line-height", "38px")
+                        , ("text-align", "center")
+                        ]
+                    ]
+                    [ text "Войти" ]
         ]
     , div
         [ id "nav"
@@ -431,7 +453,7 @@ view model =
         , style
             [ ("position", "fixed")
             , ("width", "120px")
-            , ("margin", "70px 20px 0 20px") -- margin top = topbar height + 10px
+            , ("margin", "0 20px") -- margin top = topbar height + 10px
             , ("float", "left")
             ]
         ]
@@ -442,7 +464,7 @@ view model =
     , div
         [ id "container"
         , style
-            [ ("margin-left", "160px") -- nav's width + left + right margin
+            [ ("margin", "56px 4px 0 160px") -- nav's width + left + right margin
             ]
         ]
         [ if model.loggedIn
@@ -536,7 +558,7 @@ viewVolunteer card currentUser volunteer =
 viewProfile : Bool -> User -> Html Msg
 viewProfile loggedIn user =
     div []
-    [ img [ src user.photoURL ] []
+    [ img [ src user.photoURL, width 200, height 200 ] []
     , span [] [ text user.name ]
     , span [] [ text (toString user.karma) ]
     , if loggedIn
@@ -550,13 +572,14 @@ viewProfileMenu model =
     ul
         [ style
             [ ("position", "absolute")
-            , ("right", "10px")
-            , ("top", "70px") -- 60 topbar + 10 margin
+            , ("right", "4px")
+            , ("top", "54px") -- 46 topbar + 8 margin
             , ("width", "180px")
             , ("background", "white")
             , ("margin", "0")
             , ("padding", "10px")
             , ("border-radius", "5px")
+            , ("border", "1px solid #ddd")
             ]
         ]
         [ li [] [ a [ href (toHash (PageUser model.user.uid)), class "light-btn" ] [ text "Открыть профиль" ] ]
