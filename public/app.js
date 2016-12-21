@@ -10896,7 +10896,16 @@ var _user$project$Main$viewCardKarmaPrice = F3(
 				ctor: '::',
 				_0: _elm_lang$html$Html_Attributes$class(
 					A2(_elm_lang$core$Basics_ops['++'], loc, '-card-karma')),
-				_1: {ctor: '[]'}
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$style(
+						{
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '4px'},
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}
 			},
 			{
 				ctor: '::',
@@ -10945,7 +10954,16 @@ var _user$project$Main$viewCard = F2(
 				ctor: '::',
 				_0: _elm_lang$html$Html_Attributes$class(
 					(!_elm_lang$core$String$isEmpty(card.assignedTo)) ? '_assigned' : ''),
-				_1: {ctor: '[]'}
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$style(
+						{
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '15px'},
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}
 			},
 			{
 				ctor: '::',
@@ -10971,7 +10989,16 @@ var _user$project$Main$viewCard = F2(
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html_Attributes$class('list-card-body'),
-								_1: {ctor: '[]'}
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$style(
+										{
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '10px'},
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								}
 							},
 							{
 								ctor: '::',
@@ -11595,105 +11622,129 @@ var _user$project$Main$view = function (model) {
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$id('nav'),
+						_0: _elm_lang$html$Html_Attributes$id('page-container'),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$width(120),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$style(
-									{
+							_0: _elm_lang$html$Html_Attributes$style(
+								{
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'width', _1: '900px'},
+									_1: {
 										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'position', _1: 'fixed'},
-										_1: {
-											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'width', _1: '120px'},
-											_1: {
-												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 20px'},
-												_1: {
-													ctor: '::',
-													_0: {ctor: '_Tuple2', _0: 'float', _1: 'left'},
-													_1: {ctor: '[]'}
-												}
-											}
-										}
-									}),
-								_1: {ctor: '[]'}
-							}
+										_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 auto'},
+										_1: {ctor: '[]'}
+									}
+								}),
+							_1: {ctor: '[]'}
 						}
 					},
 					{
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$a,
+							_elm_lang$html$Html$div,
 							{
 								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$href(
-									_user$project$Main$toHash(_user$project$Main$PageHome)),
-								_1: {ctor: '[]'}
+								_0: _elm_lang$html$Html_Attributes$id('nav'),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$width(120),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'position', _1: 'fixed'},
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'width', _1: '120px'},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 20px'},
+														_1: {
+															ctor: '::',
+															_0: {ctor: '_Tuple2', _0: 'float', _1: 'left'},
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}),
+										_1: {ctor: '[]'}
+									}
+								}
 							},
 							{
 								ctor: '::',
-								_0: _elm_lang$html$Html$text('Дела'),
-								_1: {ctor: '[]'}
+								_0: A2(
+									_elm_lang$html$Html$a,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$href(
+											_user$project$Main$toHash(_user$project$Main$PageHome)),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('Дела'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$div,
+										{ctor: '[]'},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text('Призы'),
+											_1: {ctor: '[]'}
+										}),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$div,
+											{ctor: '[]'},
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('Рейтинг'),
+												_1: {ctor: '[]'}
+											}),
+										_1: {ctor: '[]'}
+									}
+								}
 							}),
 						_1: {
 							ctor: '::',
 							_0: A2(
 								_elm_lang$html$Html$div,
-								{ctor: '[]'},
 								{
 									ctor: '::',
-									_0: _elm_lang$html$Html$text('Призы'),
-									_1: {ctor: '[]'}
-								}),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$div,
-									{ctor: '[]'},
-									{
+									_0: _elm_lang$html$Html_Attributes$id('content-cointainer'),
+									_1: {
 										ctor: '::',
-										_0: _elm_lang$html$Html$text('Рейтинг'),
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'margin', _1: '56px 0 0 160px'},
+												_1: {ctor: '[]'}
+											}),
 										_1: {ctor: '[]'}
-									}),
-								_1: {ctor: '[]'}
-							}
+									}
+								},
+								{
+									ctor: '::',
+									_0: model.loggedIn ? _user$project$Main$viewCreateCard(model) : A2(
+										_elm_lang$html$Html$div,
+										{ctor: '[]'},
+										{ctor: '[]'}),
+									_1: {
+										ctor: '::',
+										_0: _user$project$Main$viewPage(model),
+										_1: {ctor: '[]'}
+									}
+								}),
+							_1: {ctor: '[]'}
 						}
 					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$div,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$id('container'),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$style(
-									{
-										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'margin', _1: '56px 4px 0 160px'},
-										_1: {ctor: '[]'}
-									}),
-								_1: {ctor: '[]'}
-							}
-						},
-						{
-							ctor: '::',
-							_0: model.loggedIn ? _user$project$Main$viewCreateCard(model) : A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								{ctor: '[]'}),
-							_1: {
-								ctor: '::',
-								_0: _user$project$Main$viewPage(model),
-								_1: {ctor: '[]'}
-							}
-						}),
-					_1: {ctor: '[]'}
-				}
+				_1: {ctor: '[]'}
 			}
 		});
 };

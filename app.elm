@@ -464,29 +464,33 @@ view model =
                     [ text "Войти" ]
         ]
     , div
-        [ id "nav"
-        , width 120
-        , style
-            [ ("position", "fixed")
-            , ("width", "120px")
-            , ("margin", "0 20px") -- margin top = topbar height + 10px
-            , ("float", "left")
+        [ id "page-container"
+        , style [ ("width", "900px"), ("margin", "0 auto") ] ]
+        [ div
+            [ id "nav"
+            , width 120
+            , style
+                [ ("position", "fixed")
+                , ("width", "120px")
+                , ("margin", "0 20px") -- margin top = topbar height + 10px
+                , ("float", "left")
+                ]
             ]
-        ]
-        [ a [ href (toHash PageHome) ] [ text "Дела" ]
-        , div [] [ text "Призы" ]
-        , div [] [ text "Рейтинг" ]
-        ]
-    , div
-        [ id "container"
-        , style
-            [ ("margin", "56px 4px 0 160px") -- nav's width + left + right margin
+            [ a [ href (toHash PageHome) ] [ text "Дела" ]
+            , div [] [ text "Призы" ]
+            , div [] [ text "Рейтинг" ]
             ]
-        ]
-        [ if model.loggedIn
-            then viewCreateCard model
-            else div [] []
-        , viewPage model
+        , div
+            [ id "content-cointainer"
+            , style
+                [ ("margin", "56px 0 0 160px") -- nav's width + left + right margin
+                ]
+            ]
+            [ if model.loggedIn
+                then viewCreateCard model
+                else div [] []
+            , viewPage model
+            ]
         ]
     ]
 
@@ -510,12 +514,15 @@ viewCards model cards =
 
 viewCard : Model -> Card -> Html Msg
 viewCard model card =
-    li [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "") ]
-    [ viewCardHeader card
-    , div [ class "list-card-title"] [ text card.title ]
-    , div [ class "list-card-body"] [ text card.body ]
-    , viewCardKarmaPrice "list" model card
-    ]
+    li
+        [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "")
+        , style [ ("margin-top", "15px") ]
+        ]
+        [ viewCardHeader card
+        , div [ class "list-card-title" ] [ text card.title ]
+        , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
+        , viewCardKarmaPrice "list" model card
+        ]
 
 
 viewCardFull : Model -> Card -> Html Msg
@@ -568,7 +575,7 @@ viewCardHeader card =
 
 viewCardKarmaPrice : String -> Model -> Card -> Html Msg
 viewCardKarmaPrice loc model card =
-    div [ class (loc ++ "-card-karma") ]
+    div [ class (loc ++ "-card-karma"), style [ ("margin-top", "4px") ] ]
         [ span [] [ text "Карма:" ]
         , span
             [ contenteditable model.user.moderator
