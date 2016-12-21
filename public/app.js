@@ -10444,7 +10444,11 @@ var _user$project$Main$viewCardHeader = function (card) {
 											{
 												ctor: '::',
 												_0: {ctor: '_Tuple2', _0: 'float', _1: 'left'},
-												_1: {ctor: '[]'}
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '4px'},
+													_1: {ctor: '[]'}
+												}
 											}),
 										_1: {ctor: '[]'}
 									}
@@ -10479,53 +10483,60 @@ var _user$project$Main$viewCardHeader = function (card) {
 					{
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$div,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$style(
-									{
-										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$darkestColor},
-										_1: {
-											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							},
+							_elm_lang$html$Html$ul,
+							{ctor: '[]'},
 							{
 								ctor: '::',
 								_0: A2(
-									_user$project$Main$viewLink,
-									_user$project$Main$PageUser(card.authorId),
-									card.authorName),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{
+									_elm_lang$html$Html$li,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$darkestColor},
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
+													_1: {ctor: '[]'}
+												}
+											}),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: A2(
+											_user$project$Main$viewLink,
+											_user$project$Main$PageUser(card.authorId),
+											card.authorName),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$style(
+									_0: A2(
+										_elm_lang$html$Html$li,
 										{
 											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$lightestColor},
+											_0: _elm_lang$html$Html_Attributes$style(
+												{
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$lightestColor},
+													_1: {ctor: '[]'}
+												}),
+											_1: {ctor: '[]'}
+										},
+										{
+											ctor: '::',
+											_0: A2(
+												_user$project$Main$viewLink,
+												_user$project$Main$PageCard(card.id),
+												card.creationTimeFriendly),
 											_1: {ctor: '[]'}
 										}),
 									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: A2(
-										_user$project$Main$viewLink,
-										_user$project$Main$PageCard(card.id),
-										card.creationTimeFriendly),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}
+								}
+							}),
+						_1: {ctor: '[]'}
 					}),
 				_1: {ctor: '[]'}
 			}
@@ -10911,10 +10922,19 @@ var _user$project$Main$viewCardKarmaPrice = F3(
 				ctor: '::',
 				_0: A2(
 					_elm_lang$html$Html$span,
-					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text('Карма:'),
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Main$lightestColor},
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Карма: '),
 						_1: {ctor: '[]'}
 					}),
 				_1: {
@@ -11329,13 +11349,13 @@ var _user$project$Main$viewProfileMenu = function (model) {
 					_0: {ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
 					_1: {
 						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: 'right', _1: '4px'},
+						_0: {ctor: '_Tuple2', _0: 'right', _1: '0'},
 						_1: {
 							ctor: '::',
 							_0: {ctor: '_Tuple2', _0: 'top', _1: '54px'},
 							_1: {
 								ctor: '::',
-								_0: {ctor: '_Tuple2', _0: 'width', _1: '180px'},
+								_0: {ctor: '_Tuple2', _0: 'width', _1: 'auto'},
 								_1: {
 									ctor: '::',
 									_0: {ctor: '_Tuple2', _0: 'background', _1: 'white'},
@@ -11351,7 +11371,11 @@ var _user$project$Main$viewProfileMenu = function (model) {
 												_1: {
 													ctor: '::',
 													_0: {ctor: '_Tuple2', _0: 'border', _1: '1px solid #ddd'},
-													_1: {ctor: '[]'}
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'white-space', _1: 'nowrap'},
+														_1: {ctor: '[]'}
+													}
 												}
 											}
 										}
@@ -11512,106 +11536,147 @@ var _user$project$Main$view = function (model) {
 				},
 				{
 					ctor: '::',
-					_0: model.loggedIn ? A2(
+					_0: A2(
 						_elm_lang$html$Html$div,
-						{ctor: '[]'},
 						{
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$img,
-								{
-									ctor: '::',
-									_0: A3(
-										_elm_lang$html$Html_Events$onWithOptions,
-										'click',
-										A2(_elm_lang$html$Html_Events$Options, true, true),
-										_elm_lang$core$Json_Decode$succeed(
-											(_elm_lang$core$Native_Utils.cmp(
-												_elm_lang$core$List$length(model.popups),
-												0) > 0) ? _user$project$Main$HideAllPopups : _user$project$Main$ShowProfileMenuPopup)),
-									_1: {
+							_0: _elm_lang$html$Html_Attributes$id('topbar-content'),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
 										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$class('topbar__user-photo'),
+										_0: {ctor: '_Tuple2', _0: 'width', _1: '720px'},
 										_1: {
 											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$src(model.user.photoURL),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$width(38),
-												_1: {
-													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$height(38),
-													_1: {
-														ctor: '::',
-														_0: _elm_lang$html$Html_Attributes$style(
-															{
-																ctor: '::',
-																_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '100%'},
-																_1: {
-																	ctor: '::',
-																	_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px'},
-																	_1: {ctor: '[]'}
-																}
-															}),
-														_1: {ctor: '[]'}
-													}
-												}
-											}
+											_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 auto'},
+											_1: {ctor: '[]'}
 										}
-									}
-								},
-								{ctor: '[]'}),
-							_1: {
-								ctor: '::',
-								_0: A2(_elm_lang$core$List$member, _user$project$Main$ProfileMenu, model.popups) ? _user$project$Main$viewProfileMenu(model) : A2(
-									_elm_lang$html$Html$span,
-									{ctor: '[]'},
-									{ctor: '[]'}),
+									}),
 								_1: {ctor: '[]'}
 							}
-						}) : A2(
-						_elm_lang$html$Html$div,
+						},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('topbar__login-btn'),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Login),
-								_1: {
+							_0: model.loggedIn ? A2(
+								_elm_lang$html$Html$div,
+								{
 									ctor: '::',
 									_0: _elm_lang$html$Html_Attributes$style(
 										{
 											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px 10px 4px 4px'},
+											_0: {ctor: '_Tuple2', _0: 'position', _1: 'relative'},
 											_1: {
 												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: 'color', _1: 'white'},
+												_0: {ctor: '_Tuple2', _0: 'float', _1: 'right'},
 												_1: {
 													ctor: '::',
-													_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
+													_0: {ctor: '_Tuple2', _0: 'width', _1: '46px'},
+													_1: {ctor: '[]'}
+												}
+											}
+										}),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$img,
+										{
+											ctor: '::',
+											_0: A3(
+												_elm_lang$html$Html_Events$onWithOptions,
+												'click',
+												A2(_elm_lang$html$Html_Events$Options, true, true),
+												_elm_lang$core$Json_Decode$succeed(
+													(_elm_lang$core$Native_Utils.cmp(
+														_elm_lang$core$List$length(model.popups),
+														0) > 0) ? _user$project$Main$HideAllPopups : _user$project$Main$ShowProfileMenuPopup)),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$class('topbar__user-photo'),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$src(model.user.photoURL),
 													_1: {
 														ctor: '::',
-														_0: {ctor: '_Tuple2', _0: 'height', _1: '38px'},
+														_0: _elm_lang$html$Html_Attributes$width(38),
 														_1: {
 															ctor: '::',
-															_0: {ctor: '_Tuple2', _0: 'line-height', _1: '38px'},
+															_0: _elm_lang$html$Html_Attributes$height(38),
 															_1: {
 																ctor: '::',
-																_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+																_0: _elm_lang$html$Html_Attributes$style(
+																	{
+																		ctor: '::',
+																		_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '100%'},
+																		_1: {
+																			ctor: '::',
+																			_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px'},
+																			_1: {ctor: '[]'}
+																		}
+																	}),
 																_1: {ctor: '[]'}
 															}
 														}
 													}
 												}
 											}
-										}),
+										},
+										{ctor: '[]'}),
+									_1: {
+										ctor: '::',
+										_0: A2(_elm_lang$core$List$member, _user$project$Main$ProfileMenu, model.popups) ? _user$project$Main$viewProfileMenu(model) : A2(
+											_elm_lang$html$Html$span,
+											{ctor: '[]'},
+											{ctor: '[]'}),
+										_1: {ctor: '[]'}
+									}
+								}) : A2(
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$class('topbar__login-btn'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$Login),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$style(
+												{
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'margin', _1: '4px 10px 4px 4px'},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'color', _1: 'white'},
+														_1: {
+															ctor: '::',
+															_0: {ctor: '_Tuple2', _0: 'font-weight', _1: '500'},
+															_1: {
+																ctor: '::',
+																_0: {ctor: '_Tuple2', _0: 'height', _1: '38px'},
+																_1: {
+																	ctor: '::',
+																	_0: {ctor: '_Tuple2', _0: 'line-height', _1: '38px'},
+																	_1: {
+																		ctor: '::',
+																		_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+																		_1: {ctor: '[]'}
+																	}
+																}
+															}
+														}
+													}
+												}),
+											_1: {ctor: '[]'}
+										}
+									}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('Войти'),
 									_1: {ctor: '[]'}
-								}
-							}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Войти'),
+								}),
 							_1: {ctor: '[]'}
 						}),
 					_1: {ctor: '[]'}
@@ -11628,7 +11693,7 @@ var _user$project$Main$view = function (model) {
 							_0: _elm_lang$html$Html_Attributes$style(
 								{
 									ctor: '::',
-									_0: {ctor: '_Tuple2', _0: 'width', _1: '900px'},
+									_0: {ctor: '_Tuple2', _0: 'width', _1: '720px'},
 									_1: {
 										ctor: '::',
 										_0: {ctor: '_Tuple2', _0: 'margin', _1: '0 auto'},

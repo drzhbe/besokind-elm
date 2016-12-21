@@ -423,49 +423,58 @@ view model =
             , ("visible", "false")
             ]
         ]
-        [ if model.loggedIn
-            then
-                div []
-                [ img
-                    [ onWithOptions
-                        "click"
-                        (Options True True)
-                        (Json.succeed
-                            (if (List.length model.popups) > 0
-                                then HideAllPopups
-                                else ShowProfileMenuPopup))
-                    , class "topbar__user-photo"
-                    , src model.user.photoURL
-                    , width 38
-                    , height 38
-                    , style
-                        [ ("border-radius", "100%")
-                        , ("margin", "4px")
+        [ div
+            [ id "topbar-content", style [ ("width", "720px"), ("margin", "0 auto") ] ]
+            [ if model.loggedIn
+                then
+                    div
+                    [ style
+                        [ ("position", "relative")
+                        , ("float", "right")
+                        , ("width", "46px")
                         ]
                     ]
-                    []
-                , if (List.member ProfileMenu model.popups)
-                    then viewProfileMenu model
-                    else span [] []
-                ]
-            else
-                div
-                    [ class "topbar__login-btn"
-                    , onClick Login
-                    , style
-                        [ ("margin", "4px 10px 4px 4px")
-                        , ("color", "white")
-                        , ("font-weight", "500")
-                        , ("height", "38px")
-                        , ("line-height", "38px")
-                        , ("text-align", "center")
+                    [ img
+                        [ onWithOptions
+                            "click"
+                            (Options True True)
+                            (Json.succeed
+                                (if (List.length model.popups) > 0
+                                    then HideAllPopups
+                                    else ShowProfileMenuPopup))
+                        , class "topbar__user-photo"
+                        , src model.user.photoURL
+                        , width 38
+                        , height 38
+                        , style
+                            [ ("border-radius", "100%")
+                            , ("margin", "4px")
+                            ]
                         ]
+                        []
+                    , if (List.member ProfileMenu model.popups)
+                        then viewProfileMenu model
+                        else span [] []
                     ]
-                    [ text "Войти" ]
+                else
+                    div
+                        [ class "topbar__login-btn"
+                        , onClick Login
+                        , style
+                            [ ("margin", "4px 10px 4px 4px")
+                            , ("color", "white")
+                            , ("font-weight", "500")
+                            , ("height", "38px")
+                            , ("line-height", "38px")
+                            , ("text-align", "center")
+                            ]
+                        ]
+                        [ text "Войти" ]
+            ]
         ]
     , div
         [ id "page-container"
-        , style [ ("width", "900px"), ("margin", "0 auto") ] ]
+        , style [ ("width", "720px"), ("margin", "0 auto") ] ]
         [ div
             [ id "nav"
             , width 120
@@ -554,7 +563,7 @@ viewCardHeader card =
             [ img
                 [ src card.authorPhotoURL
                 , width 48, height 48
-                , style [ ("float", "left") ]
+                , style [ ("float", "left"), ("border-radius", "4px") ]
                 ] []
             ]
         , div
@@ -564,19 +573,21 @@ viewCardHeader card =
                 , ("margin-left", "58px")
                 ]
             ]
-            [ div
-                [ style [ ("color", darkestColor) , ("font-weight", "500") ] ]
-                [ viewLink (PageUser card.authorId) card.authorName ]
-            , div
-                [ style [ ("color", lightestColor) ] ]
-                [ viewLink (PageCard card.id) card.creationTimeFriendly ]
+            [ ul []
+                [ li
+                    [ style [ ("color", darkestColor) , ("font-weight", "500") ] ]
+                    [ viewLink (PageUser card.authorId) card.authorName ]
+                , li
+                    [ style [ ("color", lightestColor) ] ]
+                    [ viewLink (PageCard card.id) card.creationTimeFriendly ]
+                ]
             ]
         ]
 
 viewCardKarmaPrice : String -> Model -> Card -> Html Msg
 viewCardKarmaPrice loc model card =
     div [ class (loc ++ "-card-karma"), style [ ("margin-top", "4px") ] ]
-        [ span [] [ text "Карма:" ]
+        [ span [ style [ ("color", lightestColor) ] ] [ text "Карма: " ]
         , span
             [ contenteditable model.user.moderator
             , on "blur" (Json.map (UpdateKarma card.authorId card.id) textContentDecoder)
@@ -616,14 +627,15 @@ viewProfileMenu model =
     ul
         [ style
             [ ("position", "absolute")
-            , ("right", "4px")
+            , ("right", "0")
             , ("top", "54px") -- 46 topbar + 8 margin
-            , ("width", "180px")
+            , ("width", "auto")
             , ("background", "white")
             , ("margin", "0")
             , ("padding", "10px")
             , ("border-radius", "5px")
             , ("border", "1px solid #ddd")
+            , ("white-space", "nowrap")
             ]
         ]
         [ li [] [ a [ href (toHash (PageUser model.user.uid)), class "light-btn" ] [ text "Открыть профиль" ] ]
