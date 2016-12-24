@@ -203,8 +203,14 @@ update msg model =
         SetCardText text ->
             ( { model | cardText = text }, Cmd.none )
 
-        CardInputFocus value ->
-            ( { model | cardInputFocus = value }, Cmd.none )
+        CardInputFocus focused ->
+            let
+                command =
+                    if focused
+                    then Cmd.none
+                    else persistCardText model.cardText
+            in
+                ( { model | cardInputFocus = focused }, command )
 
         Login ->
             ( model, login "google" )
@@ -308,6 +314,7 @@ port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
 port takeCard : { user : User, card : Card } -> Cmd msg
 port removeCard : Card -> Cmd msg
 port assignVolunteer : { card: Card, user: User } -> Cmd msg
+port persistCardText : String -> Cmd msg
 
 
 -- SUBSCRIPTIONS
@@ -321,6 +328,7 @@ port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
 port userFetched : (User -> msg) -> Sub msg
 port userTakenCardsFetched : ((List Card) -> msg) -> Sub msg
 port cardRemoved : (Card -> msg) -> Sub msg
+port cardTextFetched : (String -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -334,6 +342,7 @@ subscriptions model =
         , userFetched SetActiveUser
         , userTakenCardsFetched ShowUserTakenCards
         , cardRemoved HandleRemoveCard
+        , cardTextFetched SetCardText
         ]
 
 
@@ -601,30 +610,62 @@ viewCard userIsModerator card =
         [ viewCardHeader card
         , div [ class "list-card-title" ] [ text card.title ]
         , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
-        , viewCardKarmaPrice "list" userIsModerator card
+        , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
+            [ viewCardKarmaPrice "list" userIsModerator card ]
         ]
 
 
 viewCardFull : Model -> Card -> Html Msg
 viewCardFull model card =
-    div []
-    [ viewCardHeader card
-    , div [ class "full-card-title"] [ text card.title ]
-    , div [ class "full-card-body"] [ text card.body ]
-    , viewCardKarmaPrice "full" model.user.moderator card
-    , div []
-        [ span [] [ text "Желающие помочь:" ]
-        , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
+    let
+        buttonStyle =
+            [ ("cursor", "pointer")
+            , ("padding", "4px 8px")
+            , ("color", "white")
+            , ("border-radius", "4px")
+            ]
+        deleteButtonStyle =
+            [ ("background", darkestColor)
+            , ("position", "absolute")
+            , ("right", "0")
+            , ("top", "-4px")
+            ]
+        takeButtonStyle =
+            [ ("background", brandColor)
+            , ("display", "inline")
+            , ("margin-left", "8px")
+            ]
+    in
+        div [ style [ ("padding", "10px") ] ]
+        [ viewCardHeader card
+        , div [ class "full-card-title"] [ text card.title ]
+        , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
+        , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
+            [ viewCardKarmaPrice "full" model.user.moderator card
+            , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
+                then div
+                    [ onClick (RemoveCard card)
+                    , style (buttonStyle ++ deleteButtonStyle)
+                    ]
+                    [ text "Удалить" ]
+                else text ""
+            , if not (String.isEmpty model.user.uid)
+                && model.user.uid /= card.authorId
+                && not (List.member model.user model.activeCardVolunteers)
+                then div
+                    [ onClick (TakeCard model.user card)
+                    , style (buttonStyle ++ takeButtonStyle)
+                    ]
+                    [ text "Помочь" ]
+                else text ""
+            ]
+        , if not (List.isEmpty model.activeCardVolunteers)
+            then div []
+            [ h3 [] [ text "Желающие помочь:" ]
+            , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
+            ]
+            else text ""
         ]
-    , if not (String.isEmpty model.user.uid)
-        && model.user.uid /= card.authorId
-        && not (List.member model.user model.activeCardVolunteers)
-        then button [ onClick (TakeCard model.user card) ] [ text "Помочь" ]
-        else span [] []
-    , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
-        then button [ onClick (RemoveCard card) ] [ text "Удалить" ]
-        else span [] []
-    ]
 
 
 viewCardHeader : Card -> Html Msg
@@ -657,7 +698,7 @@ viewCardHeader card =
 
 viewCardKarmaPrice : String -> Bool -> Card -> Html Msg
 viewCardKarmaPrice loc userIsModerator card =
-    div [ class (loc ++ "-card-karma"), style [ ("margin-top", "4px") ] ]
+    span [ class (loc ++ "-card-karma") ]
         [ span [ style [ ("color", grayColor) ] ] [ text "Карма: " ]
         , span
             [ contenteditable userIsModerator
@@ -677,7 +718,7 @@ viewVolunteer card currentUser volunteer =
             && not (String.isEmpty currentUser.uid)
             && currentUser.uid == card.authorId
             then button [ onClick (AssignVolunteer card volunteer) ] [ text "Принять помощь" ]
-            else span [] []
+            else text ""
         ]
 
 
@@ -687,9 +728,6 @@ viewProfile loggedIn user =
     [ img [ src user.photoURL, width 200, height 200 ] []
     , span [] [ text user.name ]
     , span [] [ text (toString user.karma) ]
-    , if loggedIn
-        then button [ class "topbar__logout-btn", onClick Logout ] [ text "Выйти" ]
-        else span [] []
     ]
 
 

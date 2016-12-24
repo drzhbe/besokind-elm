@@ -331,5 +331,17 @@
           });
       });
   });
+
+  app.ports.persistCardText.subscribe(function(cardText) {
+    if (!window.localStorage) return;
+    localStorage.setItem('cardText', cardText);
+  });
+
+  if (window.localStorage) {
+    var cardText = localStorage.getItem('cardText');
+    if (cardText) {
+      app.ports.cardTextFetched.send(cardText);
+    }
+  }
 </script>
 </html>
