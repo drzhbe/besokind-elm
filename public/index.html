@@ -28,6 +28,10 @@
   .light-btn:hover {
     cursor: pointer;
   }
+  .card-input::-webkit-input-placeholder { color: #1da1f2; }
+  .card-input::-moz-placeholder { color: #1da1f2; }
+  .card-input:focus::-webkit-input-placeholder { color: #ddd; }
+  .card-input:focus::-moz-placeholder { color: #ddd; }
   /*#topbar {
     position: fixed;
     left: 0;
@@ -90,8 +94,9 @@
       snapshot.forEach(function(card) {
         var card = card.val();
         card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
-        cards.push();
+        cards.push(card);
       });
+      console.log('cards', typeof cards, cards);
       app.ports.showCards.send(cards);
 
       if (!subscribedToNewCards) {
@@ -191,7 +196,7 @@
         card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
         cards.push(card);
       });
-      app.ports.showCards.send(cards);
+      app.ports.userCardsFetched.send(cards);
     });
   });
 

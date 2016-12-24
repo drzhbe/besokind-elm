@@ -1,6 +1,6 @@
 port module Main exposing (..)
 import Html exposing (..)
-import Html.Events exposing (onClick, onInput, keyCode, on, onWithOptions, Options)
+import Html.Events exposing (onClick, onInput, targetValue, keyCode, on, onWithOptions, Options)
 import Html.Attributes exposing (..)
 import Json.Decode as Json exposing (at, string, value, succeed)
 import Navigation
@@ -83,9 +83,11 @@ type alias Model =
     , loggedIn : Bool
     , title : String
     , cardText : String
+    , cardInputFocus : Bool
     , place : String
     , user : User
     , cards : (List Card)
+    , userCards : (List Card)
     , activeCard : Card
     , activeCardVolunteers : (List User)
     , activeUser : User
@@ -134,9 +136,11 @@ init location =
             , loggedIn = False
             , title = ""
             , cardText = ""
+            , cardInputFocus = False
             , place = ""
             , user = (User "" "" "" "" 0 False)
             , cards = []
+            , userCards = []
             , activeCard = (Card "" "" "" "" 0 "" 0 "" "" "" "")
             , activeCardVolunteers = []
             , activeUser = (User "" "" "" "" 0 False)
@@ -160,12 +164,14 @@ defaultPage page =
 type Msg
     = NoOp
     | UrlChange Navigation.Location
-    | CardText String
+    | SetCardText String
+    | CardInputFocus Bool
     | Login
     | Logout
     | SetUser User
     | CreateCard
     | ShowCards (List Card)
+    | ShowUserCards (List Card)
     | AddCardToList Card
     | ShowCard Card
     | SetActiveUser User
@@ -194,8 +200,11 @@ update msg model =
                 , fetchData page
                 )
 
-        CardText text ->
+        SetCardText text ->
             ( { model | cardText = text }, Cmd.none )
+
+        CardInputFocus value ->
+            ( { model | cardInputFocus = value }, Cmd.none )
 
         Login ->
             ( model, login "google" )
@@ -226,6 +235,9 @@ update msg model =
 
         ShowCards cards ->
             ( { model | cards = (List.reverse cards) }, Cmd.none )
+
+        ShowUserCards cards ->
+            ( { model | userCards = (List.reverse cards) }, Cmd.none )
 
         AddCardToList card ->
             case List.head model.cards of
@@ -302,6 +314,7 @@ port assignVolunteer : { card: Card, user: User } -> Cmd msg
 
 port authStateChanged : (User -> msg) -> Sub msg
 port showCards : ((List Card) -> msg) -> Sub msg
+port userCardsFetched : ((List Card) -> msg) -> Sub msg
 port addCardToList : (Card -> msg) -> Sub msg
 port cardFetched : (Card -> msg) -> Sub msg
 port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
@@ -314,6 +327,7 @@ subscriptions model =
     Sub.batch
         [ authStateChanged SetUser
         , showCards ShowCards
+        , userCardsFetched ShowUserCards
         , addCardToList AddCardToList
         , cardFetched ShowCard
         , cardVolunteersFetched ShowVolunteers
@@ -361,15 +375,19 @@ fetchData page =
 -- coral
 brandColor : String
 brandColor = "#f2836b"
+brandLighterColor : String
+brandLighterColor = "#f2c3ab"
+brandLightestColor : String
+brandLightestColor = "#ffe3cb"
 -- almbost black
 darkestColor : String
 darkestColor = "#333"
--- gray
-secondaryColor : String
-secondaryColor = "#555"
 -- lightest gray
-lightestColor : String
-lightestColor = "#999"
+grayColor : String
+grayColor = "#999"
+-- lightest
+grayLightestColor : String
+grayLightestColor = "#f9f9f9"
 -- blue
 linkColor : String
 linkColor = "#1da1f2"
@@ -400,9 +418,9 @@ viewPage model =
         PageUser id ->
             div []
             [ viewProfile model.loggedIn model.activeUser
-            , div [] [ text "Дела пользователя:" ]
-            , viewCards model model.cards
-            , div [] [ text "Волонтер в делах:" ]
+            , h3 [] [ text "Дела пользователя:" ]
+            , viewCards model model.userCards
+            , h3 [] [ text "Волонтер в делах:" ]
             , viewCards model model.userTakenCards
             ]
 
@@ -504,33 +522,86 @@ view model =
     ]
 
 
-viewCreateCard : Model -> Html Msg
 viewCreateCard model =
-    div []
-    [ textarea
-        [ placeholder "Какая помощь вам требуется?"
-        , onInput CardText
-        , Html.Attributes.value model.cardText ]
-        []
-    , button [ onClick CreateCard ] [ text "Создать дело" ]
-    ]
+    let
+        emptyText = String.isEmpty model.cardText
+        expandedTextArea = not emptyText || model.cardInputFocus
+        createButtonActivityColors =
+            if emptyText
+            then [ ("background", brandLighterColor), ("color", grayLightestColor) ]
+            else [ ("background", brandColor), ("color", "white") ]
+    in
+        div [ style
+                [ ("min-height", "50px")
+                , ("padding", "10px")
+                , ("background", brandLightestColor)
+                , ("border-radius", "4px")
+                ]
+            ]
+            [ a [ href (toHash (PageUser model.user.uid)) ]
+                [ img
+                    [ src model.user.photoURL
+                    , width 48, height 48
+                    , style [ ("float", "left"), ("border-radius", "4px") ]
+                    ] []
+                ]
+            , textarea
+                [ class "card-input"
+                , placeholder "Какая помощь вам требуется?"
+                , Html.Attributes.value model.cardText
+                , rows (if expandedTextArea then 4 else 2)
+                , onInput SetCardText
+                , Html.Events.onFocus (CardInputFocus True)
+                , Html.Events.onBlur (CardInputFocus False)
+                , style
+                    [ ("outline", "none")
+                    , ("border", "0")
+                    , ("resize", "none")
+                    , ("font-size", "14px")
+                    , ("margin-left", "8px")
+                    , ("width", "470px")
+                    , ("padding", "8px 0 4px 8px")
+                    , ("border", "1px solid " ++ brandLighterColor)
+                    ]
+                ]
+                []
+            , div
+                [ style
+                    [ ("display", (if expandedTextArea then "block" else "none"))
+                    , ("height", "40px")
+                    ]
+                ]
+                [ div
+                    [ onClick CreateCard
+                    , style (
+                        [ ("float", "right")
+                        , ("margin", "4px 6px 0 0")
+                        , ("padding", "10px 20px")
+                        , ("border-radius", "4px")
+                        , ("max-width", "100px")
+                        , ("cursor", (if emptyText then "default" else "pointer"))
+                        ] ++ createButtonActivityColors)
+                    ]
+                    [ text "Создать дело" ]
+                ]
+            ]
 
 
 viewCards : Model -> (List Card) -> Html Msg
 viewCards model cards =
-    ul [] (List.map (viewCard model) cards)
+    ul [] (List.map (viewCard model.user.moderator) cards)
 
 
-viewCard : Model -> Card -> Html Msg
-viewCard model card =
+viewCard : Bool -> Card -> Html Msg
+viewCard userIsModerator card =
     li
         [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "")
-        , style [ ("margin-top", "15px") ]
+        , style [ ("padding", "10px") ]
         ]
         [ viewCardHeader card
         , div [ class "list-card-title" ] [ text card.title ]
         , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
-        , viewCardKarmaPrice "list" model card
+        , viewCardKarmaPrice "list" userIsModerator card
         ]
 
 
@@ -540,7 +611,7 @@ viewCardFull model card =
     [ viewCardHeader card
     , div [ class "full-card-title"] [ text card.title ]
     , div [ class "full-card-body"] [ text card.body ]
-    , viewCardKarmaPrice "full" model card
+    , viewCardKarmaPrice "full" model.user.moderator card
     , div []
         [ span [] [ text "Желающие помочь:" ]
         , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
@@ -578,18 +649,18 @@ viewCardHeader card =
                     [ style [ ("color", darkestColor) , ("font-weight", "500") ] ]
                     [ viewLink (PageUser card.authorId) card.authorName ]
                 , li
-                    [ style [ ("color", lightestColor) ] ]
+                    [ style [ ("color", grayColor) ] ]
                     [ viewLink (PageCard card.id) card.creationTimeFriendly ]
                 ]
             ]
         ]
 
-viewCardKarmaPrice : String -> Model -> Card -> Html Msg
-viewCardKarmaPrice loc model card =
+viewCardKarmaPrice : String -> Bool -> Card -> Html Msg
+viewCardKarmaPrice loc userIsModerator card =
     div [ class (loc ++ "-card-karma"), style [ ("margin-top", "4px") ] ]
-        [ span [ style [ ("color", lightestColor) ] ] [ text "Карма: " ]
+        [ span [ style [ ("color", grayColor) ] ] [ text "Карма: " ]
         , span
-            [ contenteditable model.user.moderator
+            [ contenteditable userIsModerator
             , on "blur" (Json.map (UpdateKarma card.authorId card.id) textContentDecoder)
             ]
             [ text (toString card.karma) ]
@@ -650,4 +721,8 @@ viewLink page description =
 
 textContentDecoder : Json.Decoder String
 textContentDecoder =
-    at ["target", "textContent"] Json.string
+    Json.at ["target", "textContent"] Json.string
+
+innerHTMLDecoder : Json.Decoder String
+innerHTMLDecoder =
+    Json.at ["target", "innerHTML"] Json.string
