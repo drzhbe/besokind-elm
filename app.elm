@@ -401,6 +401,27 @@ grayLightestColor = "#f9f9f9"
 linkColor : String
 linkColor = "#1da1f2"
 
+buttonStyle : List (String, String)
+buttonStyle =
+    [ ("cursor", "pointer")
+    , ("padding", "4px 8px")
+    , ("color", "white")
+    , ("border-radius", "4px")
+    ]
+deleteButtonStyle : List (String, String)
+deleteButtonStyle =
+    [ ("background", darkestColor)
+    , ("position", "absolute")
+    , ("right", "0")
+    , ("top", "-4px")
+    ]
+takeButtonStyle : List (String, String)
+takeButtonStyle =
+    [ ("background", brandColor)
+    , ("display", "inline")
+    , ("margin-left", "8px")
+    ]
+
 
 viewPage : Model -> Html Msg
 viewPage model =
@@ -453,8 +474,7 @@ view model =
         [ div
             [ id "topbar-content", style [ ("width", "720px"), ("margin", "0 auto") ] ]
             [ if model.loggedIn
-                then
-                    div
+                then div
                     [ style
                         [ ("position", "relative")
                         , ("float", "right")
@@ -476,6 +496,7 @@ view model =
                         , style
                             [ ("border-radius", "100%")
                             , ("margin", "4px")
+                            , ("cursor", "pointer")
                             ]
                         ]
                         []
@@ -483,20 +504,20 @@ view model =
                         then viewProfileMenu model
                         else span [] []
                     ]
-                else
-                    div
-                        [ class "topbar__login-btn"
-                        , onClick Login
-                        , style
-                            [ ("margin", "4px 10px 4px 4px")
-                            , ("color", "white")
-                            , ("font-weight", "500")
-                            , ("height", "38px")
-                            , ("line-height", "38px")
-                            , ("text-align", "center")
-                            ]
+                else div
+                    [ class "topbar__login-btn"
+                    , onClick Login
+                    , style
+                        [ ("margin", "4px 10px 4px 4px")
+                        , ("color", "white")
+                        , ("font-weight", "500")
+                        , ("height", "38px")
+                        , ("line-height", "38px")
+                        , ("text-align", "center")
+                        , ("cursor", "pointer")
                         ]
-                        [ text "Войти" ]
+                    ]
+                    [ text "Войти" ]
             ]
         ]
     , div
@@ -617,55 +638,36 @@ viewCard userIsModerator card =
 
 viewCardFull : Model -> Card -> Html Msg
 viewCardFull model card =
-    let
-        buttonStyle =
-            [ ("cursor", "pointer")
-            , ("padding", "4px 8px")
-            , ("color", "white")
-            , ("border-radius", "4px")
-            ]
-        deleteButtonStyle =
-            [ ("background", darkestColor)
-            , ("position", "absolute")
-            , ("right", "0")
-            , ("top", "-4px")
-            ]
-        takeButtonStyle =
-            [ ("background", brandColor)
-            , ("display", "inline")
-            , ("margin-left", "8px")
-            ]
-    in
-        div [ style [ ("padding", "10px") ] ]
-        [ viewCardHeader card
-        , div [ class "full-card-title"] [ text card.title ]
-        , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
-        , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
-            [ viewCardKarmaPrice "full" model.user.moderator card
-            , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
-                then div
-                    [ onClick (RemoveCard card)
-                    , style (buttonStyle ++ deleteButtonStyle)
-                    ]
-                    [ text "Удалить" ]
-                else text ""
-            , if not (String.isEmpty model.user.uid)
-                && model.user.uid /= card.authorId
-                && not (List.member model.user model.activeCardVolunteers)
-                then div
-                    [ onClick (TakeCard model.user card)
-                    , style (buttonStyle ++ takeButtonStyle)
-                    ]
-                    [ text "Помочь" ]
-                else text ""
-            ]
-        , if not (List.isEmpty model.activeCardVolunteers)
-            then div []
-            [ h3 [] [ text "Желающие помочь:" ]
-            , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
-            ]
+    div [ style [ ("padding", "10px") ] ]
+    [ viewCardHeader card
+    , div [ class "full-card-title"] [ text card.title ]
+    , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
+    , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
+        [ viewCardKarmaPrice "full" model.user.moderator card
+        , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
+            then div
+                [ onClick (RemoveCard card)
+                , style (buttonStyle ++ deleteButtonStyle)
+                ]
+                [ text "Удалить" ]
+            else text ""
+        , if not (String.isEmpty model.user.uid)
+            && model.user.uid /= card.authorId
+            && not (List.member model.user model.activeCardVolunteers)
+            then div
+                [ onClick (TakeCard model.user card)
+                , style (buttonStyle ++ takeButtonStyle)
+                ]
+                [ text "Помочь" ]
             else text ""
         ]
+    , if not (List.isEmpty model.activeCardVolunteers)
+        then div []
+        [ h3 [] [ text "Желающие помочь:" ]
+        , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
+        ]
+        else text ""
+    ]
 
 
 viewCardHeader : Card -> Html Msg
@@ -712,19 +714,31 @@ viewCardKarmaPrice loc userIsModerator card =
 viewVolunteer : Card -> User -> User -> Html Msg
 viewVolunteer card currentUser volunteer =
     li []
-        [ img [ src volunteer.photoURL, width 48, height 48 ] []
-        , viewLink (PageUser volunteer.uid) volunteer.name
+        [ a [ href (toHash (PageUser volunteer.uid)) ]
+            [ img
+                [ src volunteer.photoURL
+                , width 25, height 25
+                , style [ ("float", "left"), ("border-radius", "4px") ]
+                ] []
+            ]
+        , span
+            [ style [ ("line-height", "25px"), ("margin-left", "4px") ] ]
+            [ viewLink (PageUser volunteer.uid) volunteer.name ]
         , if (String.isEmpty card.assignedTo)
             && not (String.isEmpty currentUser.uid)
             && currentUser.uid == card.authorId
-            then button [ onClick (AssignVolunteer card volunteer) ] [ text "Принять помощь" ]
+            then div
+                [ onClick (AssignVolunteer card volunteer)
+                , style (buttonStyle ++ takeButtonStyle)
+                ]
+                [ text "Принять помощь" ]
             else text ""
         ]
 
 
 viewProfile : Bool -> User -> Html Msg
 viewProfile loggedIn user =
-    div []
+    div [ style [ ("margin-top", "10px") ] ]
     [ img [ src user.photoURL, width 200, height 200 ] []
     , span [] [ text user.name ]
     , span [] [ text (toString user.karma) ]
