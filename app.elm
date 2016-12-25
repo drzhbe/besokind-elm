@@ -462,6 +462,7 @@ view model =
         [ id "topbar"
         , style
             [ ("position", "fixed")
+            , ("z-index", "2")
             , ("top", "0")
             , ("left", "0")
             , ("right", "0")
@@ -632,7 +633,7 @@ viewCard userIsModerator card =
         , div [ class "list-card-title" ] [ text card.title ]
         , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
         , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
-            [ viewCardKarmaPrice "list" userIsModerator card ]
+            [ viewCardKarmaPrice userIsModerator card ]
         ]
 
 
@@ -643,7 +644,7 @@ viewCardFull model card =
     , div [ class "full-card-title"] [ text card.title ]
     , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
     , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
-        [ viewCardKarmaPrice "full" model.user.moderator card
+        [ viewCardKarmaPrice model.user.moderator card
         , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
             then div
                 [ onClick (RemoveCard card)
@@ -698,9 +699,9 @@ viewCardHeader card =
             ]
         ]
 
-viewCardKarmaPrice : String -> Bool -> Card -> Html Msg
-viewCardKarmaPrice loc userIsModerator card =
-    span [ class (loc ++ "-card-karma") ]
+viewCardKarmaPrice : Bool -> Card -> Html Msg
+viewCardKarmaPrice userIsModerator card =
+    span []
         [ span [ style [ ("color", grayColor) ] ] [ text "Карма: " ]
         , span
             [ contenteditable userIsModerator
@@ -738,10 +739,21 @@ viewVolunteer card currentUser volunteer =
 
 viewProfile : Bool -> User -> Html Msg
 viewProfile loggedIn user =
-    div [ style [ ("margin-top", "10px") ] ]
+    div [ style [ ("position", "relative"), ("margin-top", "10px") ] ]
     [ img [ src user.photoURL, width 200, height 200 ] []
-    , span [] [ text user.name ]
-    , span [] [ text (toString user.karma) ]
+    , ul
+        [ style
+            [ ("position", "absolute")
+            , ("margin-left", "10px")
+            , ("display", "inline-block")
+            ]
+        ]
+        [ li [] [ text user.name ]
+        , li []
+            [ span [ style [ ("color", grayColor) ] ] [ text "Карма: " ]
+            , span [] [ text (toString user.karma) ]
+            ]
+        ]
     ]
 
 

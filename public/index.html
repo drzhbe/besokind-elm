@@ -164,7 +164,9 @@
     }
   });
 
-  app.ports.logout.subscribe(auth.signOut);
+  app.ports.logout.subscribe(function() {
+    auth.signOut();
+  });
 
   app.ports.fetchStreamCards.subscribe(getCards);
 
