@@ -124,8 +124,8 @@
             name: user.displayName,
             email: user.email,
             photoURL: user.photoURL,
-            karma: user.karma,
-            moderator: user.moderator
+            karma: 0,
+            moderator: false
           };
           updates['users/' + user.uid] = newUser;
 

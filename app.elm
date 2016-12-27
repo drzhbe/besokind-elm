@@ -448,9 +448,13 @@ viewPage model =
         PageUser id ->
             div []
             [ viewProfile model.loggedIn model.activeUser
-            , h3 [] [ text "Дела пользователя:" ]
+            , if not (List.isEmpty model.userCards)
+                then h3 [] [ text "Дела пользователя:" ]
+                else text ""
             , viewCards model model.userCards
-            , h3 [] [ text "Волонтер в делах:" ]
+            , if not (List.isEmpty model.userTakenCards)
+                then h3 [] [ text "Волонтер в делах:" ]
+                else text ""
             , viewCards model model.userTakenCards
             ]
 
@@ -503,7 +507,7 @@ view model =
                         []
                     , if (List.member ProfileMenu model.popups)
                         then viewProfileMenu model
-                        else span [] []
+                        else text ""
                     ]
                 else div
                     [ class "topbar__login-btn"
