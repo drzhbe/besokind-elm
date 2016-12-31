@@ -560,59 +560,63 @@ viewTopbar model =
                 , style
                     [ ("max-width", "75%")
                     , ("display", "inline-block")
-                    , ("margin", "0 8px")
+                    , ("margin", "0 12px")
                     ]
                 ]
                 [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
-                , li [ class "nav-item" ] [ text "Призы" ]
-                , li [ class "nav-item" ] [ text "Рейтинг" ]
-                , li [ class "nav-item" ] [ text "Уведомления" ]
+                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Призы" ]
+                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
+                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Уведомления" ]
                 ]
-            , if model.loggedIn
-                then div
-                    [ style
-                        [ ("position", "relative")
-                        , ("float", "right")
-                        , ("width", "46px")
+            , div
+                [ style [ ("float", "right"), ("margin-right", "4px") ] ]
+                [ if model.loggedIn
+                    then div
+                        [ style
+                            [ ("position", "relative")
+                            --, ("float", "right")
+                            , ("width", "46px")
+                            ]
                         ]
-                    ]
-                    [ img
-                        [ onWithOptions
-                            "click"
-                            (Options True True)
-                            (Json.succeed
-                                (if (List.length model.popups) > 0
-                                    then HideAllPopups
-                                    else ShowProfileMenuPopup))
-                        , class "topbar__user-photo"
-                        , src model.user.photoURL
-                        , width 38
-                        , height 38
+                        [ img
+                            [ onWithOptions
+                                "click"
+                                (Options True True)
+                                (Json.succeed
+                                    (if (List.length model.popups) > 0
+                                        then HideAllPopups
+                                        else ShowProfileMenuPopup))
+                            , class "topbar__user-photo"
+                            , src model.user.photoURL
+                            , width 38
+                            , height 38
+                            , style
+                                [ ("border-radius", "100%")
+                                , ("margin", "4px")
+                                , ("cursor", "pointer")
+                                ]
+                            ]
+                            []
+                        , if (List.member ProfileMenu model.popups)
+                            then viewProfileMenu model
+                            else text ""
+                        ]
+                    else div
+                        [ class "topbar__login-btn"
+                        , onClick Login
                         , style
-                            [ ("border-radius", "100%")
-                            , ("margin", "4px")
+                            [ ("margin", "4px 10px 4px 4px")
+                            --, ("float", "right")
+                            , ("color", "bisque")
+                            , ("font-weight", "500")
+                            , ("height", "38px")
+                            , ("line-height", "38px")
+                            , ("text-align", "center")
                             , ("cursor", "pointer")
                             ]
                         ]
-                        []
-                    , if (List.member ProfileMenu model.popups)
-                        then viewProfileMenu model
-                        else text ""
-                    ]
-                else div
-                    [ class "topbar__login-btn"
-                    , onClick Login
-                    , style
-                        [ ("margin", "4px 10px 4px 4px")
-                        , ("color", "bisque")
-                        , ("font-weight", "500")
-                        , ("height", "38px")
-                        , ("line-height", "38px")
-                        , ("text-align", "center")
-                        , ("cursor", "pointer")
-                        ]
-                    ]
-                    [ text "Войти" ]
+                        [ text "Войти" ]
+                ]
             ]
         ]
 
