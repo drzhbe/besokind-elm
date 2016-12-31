@@ -6,6 +6,8 @@ import Json.Decode as Json exposing (at, string, value, succeed)
 import Navigation
 import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import String
+import Set
+import Dict
 
 
 main =
@@ -94,6 +96,8 @@ type alias Model =
     , userTakenCards : (List Card)
     , karma : (String, Int)
     , popups : (List Popup)
+    , notifications : (Dict.Dict String Notification)
+    , usersOnline : (Set.Set String)
     }
 
 
@@ -121,6 +125,17 @@ type alias Card =
     , assignedTo : String
     }
 
+type alias Notification =
+    { id : String
+    , name : String
+    }
+
+type alias IM =
+    { id : String
+    , userId : String
+    , text : String
+    , date : String
+    }
 
 type Popup
     = ProfileMenu
@@ -147,6 +162,8 @@ init location =
             , userTakenCards = []
             , karma = ("", 0)
             , popups = []
+            , notifications = Dict.empty
+            , usersOnline = Set.empty
             }
         , fetchData page
         )
@@ -184,6 +201,10 @@ type Msg
     | AssignVolunteer Card User
     | ShowProfileMenuPopup
     | HideAllPopups
+    | AddNotification Notification
+    | RemoveNotification String
+    | AddOnlineUser String
+    | RemoveOnlineUser String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -298,6 +319,26 @@ update msg model =
             then ( model, Cmd.none )
             else ( { model | popups = [] }, Cmd.none )
 
+        AddNotification notification ->
+            ( { model
+                | notifications = Dict.insert notification.id notification model.notifications }
+            , Cmd.none )
+
+        RemoveNotification notificationId ->
+            ( { model
+                | notifications = Dict.remove notificationId model.notifications }
+            , Cmd.none )
+
+        AddOnlineUser userId ->
+            ( { model
+                | usersOnline = Set.insert (Debug.log "userId came online" userId) model.usersOnline }
+            , Cmd.none )
+
+        RemoveOnlineUser userId ->
+            ( { model
+                | usersOnline = Set.remove (Debug.log "userId went offline" userId) model.usersOnline }
+            , Cmd.none )
+
 
 -- OUTGOING PORTS
 
@@ -315,6 +356,7 @@ port takeCard : { user : User, card : Card } -> Cmd msg
 port removeCard : Card -> Cmd msg
 port assignVolunteer : { card: Card, user: User } -> Cmd msg
 port persistCardText : String -> Cmd msg
+port removeNotification : String -> Cmd msg
 
 
 -- SUBSCRIPTIONS
@@ -329,6 +371,10 @@ port userFetched : (User -> msg) -> Sub msg
 port userTakenCardsFetched : ((List Card) -> msg) -> Sub msg
 port cardRemoved : (Card -> msg) -> Sub msg
 port cardTextFetched : (String -> msg) -> Sub msg
+port notificationAdded : (Notification -> msg) -> Sub msg
+port notificationRemoved : (String -> msg) -> Sub msg
+port onlineUserAdded : (String -> msg) -> Sub msg
+port onlineUserRemoved : (String -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -343,6 +389,10 @@ subscriptions model =
         , userTakenCardsFetched ShowUserTakenCards
         , cardRemoved HandleRemoveCard
         , cardTextFetched SetCardText
+        , notificationAdded AddNotification
+        , notificationRemoved RemoveNotification
+        , onlineUserAdded AddOnlineUser
+        , onlineUserRemoved RemoveOnlineUser
         ]
 
 
@@ -462,7 +512,28 @@ viewPage model =
 view : Model -> Html Msg
 view model =
     div [ onClick HideAllPopups ]
-    [ div
+    [ viewTopbar model
+    , div
+        [ id "page-container"
+        , style [ ("width", "560px"), ("margin", "0 auto") ] ]
+        [ div
+            [ id "content-cointainer"
+            , style
+                [ ("margin-top", "56px")
+                ]
+            ]
+            [ if model.loggedIn
+                then viewCreateCard model
+                else div [] []
+            , viewPage model
+            ]
+        ]
+    ]
+
+
+viewTopbar : Model -> Html Msg
+viewTopbar model =
+    div
         [ id "topbar"
         , style
             [ ("position", "fixed")
@@ -477,8 +548,29 @@ view model =
             ]
         ]
         [ div
-            [ id "topbar-content", style [ ("width", "720px"), ("margin", "0 auto") ] ]
-            [ if model.loggedIn
+            [ id "topbar-content"
+            , style
+                [ ("width", "100%")
+                , ("max-width", "560px")
+                , ("margin", "0 auto")
+                ]
+            ]
+            [ ul
+                [ id "nav"
+                , class "horizontal-list"
+                , style
+                    [ ("max-width", "75%")
+                    , ("display", "inline-block")
+                    --, ("margin", "0 20px") -- margin top = topbar height + 10px
+                    --, ("float", "left")
+                    ]
+                ]
+                [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
+                , li [ class "nav-item" ] [ text "Призы" ]
+                , li [ class "nav-item" ] [ text "Рейтинг" ]
+                , li [ class "nav-item" ] [ text "Уведомления" ]
+                ]
+            , if model.loggedIn
                 then div
                     [ style
                         [ ("position", "relative")
@@ -514,7 +606,7 @@ view model =
                     , onClick Login
                     , style
                         [ ("margin", "4px 10px 4px 4px")
-                        , ("color", "white")
+                        , ("color", "bisque")
                         , ("font-weight", "500")
                         , ("height", "38px")
                         , ("line-height", "38px")
@@ -525,38 +617,9 @@ view model =
                     [ text "Войти" ]
             ]
         ]
-    , div
-        [ id "page-container"
-        , style [ ("width", "720px"), ("margin", "0 auto") ] ]
-        [ div
-            [ id "nav"
-            , width 120
-            , style
-                [ ("position", "fixed")
-                , ("width", "120px")
-                , ("margin", "0 20px") -- margin top = topbar height + 10px
-                , ("float", "left")
-                ]
-            ]
-            [ a [ href (toHash PageHome) ] [ text "Дела" ]
-            , div [] [ text "Призы" ]
-            , div [] [ text "Рейтинг" ]
-            ]
-        , div
-            [ id "content-cointainer"
-            , style
-                [ ("margin", "56px 0 0 160px") -- nav's width + left + right margin
-                ]
-            ]
-            [ if model.loggedIn
-                then viewCreateCard model
-                else div [] []
-            , viewPage model
-            ]
-        ]
-    ]
 
 
+viewCreateCard : Model -> Html Msg
 viewCreateCard model =
     let
         emptyText = String.isEmpty model.cardText
@@ -624,27 +687,27 @@ viewCreateCard model =
 
 viewCards : Model -> (List Card) -> Html Msg
 viewCards model cards =
-    ul [] (List.map (viewCard model.user.moderator) cards)
+    ul [] (List.map (viewCard model) cards)
 
 
-viewCard : Bool -> Card -> Html Msg
-viewCard userIsModerator card =
+viewCard : Model -> Card -> Html Msg
+viewCard model card =
     li
         [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "")
         , style [ ("padding", "10px") ]
         ]
-        [ viewCardHeader card
+        [ viewCardHeader card (Set.member card.authorId model.usersOnline)
         , div [ class "list-card-title" ] [ text card.title ]
         , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
         , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
-            [ viewCardKarmaPrice userIsModerator card ]
+            [ viewCardKarmaPrice model.user.moderator card ]
         ]
 
 
 viewCardFull : Model -> Card -> Html Msg
 viewCardFull model card =
     div [ style [ ("padding", "10px") ] ]
-    [ viewCardHeader card
+    [ viewCardHeader card (Set.member card.authorId model.usersOnline)
     , div [ class "full-card-title"] [ text card.title ]
     , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
     , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
@@ -672,13 +735,32 @@ viewCardFull model card =
         , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
         ]
         else text ""
+    , if not (String.isEmpty card.assignedTo)
+        then div []
+        [
+        ]
+        else text ""
     ]
 
+viewMessage : IM -> Html msg
+viewMessage message =
+    div [] []
 
-viewCardHeader : Card -> Html Msg
-viewCardHeader card =
-    div [ class "list-card-header" ]
-        [ a [ href (toHash (PageUser card.authorId)) ]
+
+viewCardHeader : Card -> Bool -> Html Msg
+viewCardHeader card authorOnline =
+    div [ class "card-header" ]
+        [ a [ href (toHash (PageUser card.authorId))
+            , classList
+                [ ("card-header__author-photo", True)
+                , ("online", authorOnline)
+                ]
+            , style
+                [ ("position", "relative")
+                , ("display", "block")
+                , ("float", "left")
+                ]
+            ]
             [ img
                 [ src card.authorPhotoURL
                 , width 48, height 48

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <meta charset="utf-8">
+<meta name=viewport content="width=device-width, initial-scale=1">
 <title>besokind</title>
 <style>
   body {
@@ -33,6 +34,26 @@
   .card-input::-moz-placeholder { color: #333; }
   .card-input:focus::-webkit-input-placeholder { color: #ddd; }
   .card-input:focus::-moz-placeholder { color: #ddd; }
+  .card-header__author-photo.online::after {
+    content: "";
+    background-color: limegreen;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid #fff;
+    border-radius: 0 0 4px 0;
+    width: 10px;
+    height: 10px;
+  }
+  .horizontal-list li {
+    display: inline-block;
+  }
+  .nav-item {
+    line-height: 48px;
+    height: 48px;
+    margin-right: 10px;
+    color: bisque;
+  }
   /*#topbar {
     position: fixed;
     left: 0;
@@ -110,11 +131,30 @@
   }
 
 
+  function setUserPresence(isOnline) {
+    if (auth.currentUser) {
+      var updates = {};
+      updates[auth.currentUser.uid] = isOnline ? true : null;
+      database.ref('users-online')
+        .update(updates)
+        .then(function() {
+          // body...
+        })
+        .catch(function(argument) {
+          console.error('## error during [setting user presence]:', error);
+        });
+    }
+  }
+
+
   auth.onAuthStateChanged(function(user) {
     if (user) {
-      database.ref('users/' + user.uid).once('value', function(snapshot) {
+      var userRef = database.ref('users/' + user.uid);
+
+      userRef.once('value', function(snapshot) {
         var userInDb = snapshot.val();
         if (userInDb) {
+          setUserPresence(true);
           app.ports.authStateChanged.send(userInDb);
         } else {
           // authorized for the first time -> create user
@@ -132,6 +172,7 @@
           database.ref()
             .update(updates)
             .then(function() {
+              setUserPresence(true);
               app.ports.authStateChanged.send(newUser);
             })
             .catch(function(error) {
@@ -141,6 +182,16 @@
       }).catch(function(error) {
         console.error('## error during [getting user info]:', error);
       });
+
+      userRef.child('notifications').on('child_added', function(notification) {
+        app.ports.notificationAdded.send(notification.val());
+      });
+      userRef.child('notifications').on('child_removed', function(notification) {
+        app.ports.notificationREmoved.send(notification.val());
+      });
+      userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+      var usersOnlineRef = database.ref('users-online');
+      usersOnlineRef.child(user.uid).onDisconnect().remove();
     } else {
       app.ports.authStateChanged.send({
         uid: '',
@@ -154,7 +205,6 @@
   });
 
 
-
   var app = Elm.Main.fullscreen();
   app.ports.login.subscribe(function(authType) {
     switch (authType) {
@@ -165,7 +215,16 @@
   });
 
   app.ports.logout.subscribe(function() {
+    if (auth.currentUser) {
+      setUserPresence(false);
+      database.ref('users/' + auth.currentUser.uid + '/lastOnline')
+        .set(firebase.database.ServerValue.TIMESTAMP);
+    }
     auth.signOut();
+  });
+
+  app.ports.removeNotification.subscribe(function(userId, notificationId) {
+    database.ref('users/' + userId + '/notifications/' + notificationId).remove();
   });
 
   app.ports.fetchStreamCards.subscribe(getCards);
@@ -311,6 +370,31 @@
     });
   });
 
+
+  function createRoom(roomId, authorId, volunteerId) {
+    var roomExists = false;
+
+    var updates = {};
+    updates['room-metadata/' + roomId + '/users/' + authorId] = true;
+    updates['room-metadata/' + roomId + '/users/' + volunteerId] = true;
+    updates['users/' + authorId + '/rooms/' + roomId] = true;
+    updates['users/' + volunteerId + '/rooms/' + roomId] = true;
+    var volunteerNotificationId = database.ref('users/' + volunteerId + '/notifications').push().key;
+    updates['users/' + volunteerId + '/notifications/' + volunteerNotificationId] = {
+      name: 'userAssignedToCard'
+    };
+
+    database.ref()
+      .update(updates)
+      .then(function() {
+        
+      })
+      .catch(function(error) {
+        console.error('## error during [creating room]:', roomId, 'for users:', authorId, volunteerId, error);
+      });
+  }
+
+
   /*
     port assignVolunteer : { card: Card, user: User } -> Cmd msg
   */
@@ -323,11 +407,12 @@
         });
 
         updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+        // updates['rooms/']
 
         database.ref()
           .update(updates)
           .then(function() {
-            // volunteer accepted
+            createRoom(o.card.id, o.card.authorId, o.user.uid);
           })
           .catch(function(error) {
             console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
@@ -346,5 +431,12 @@
       app.ports.cardTextFetched.send(cardText);
     }
   }
+
+  database.ref('users-online').on('child_added', function(snapshot) {
+    app.ports.onlineUserAdded.send(snapshot.key);
+  });
+  database.ref('users-online').on('child_removed', function(snapshot) {
+    app.ports.onlineUserRemoved.send(snapshot.key);
+  });
 </script>
 </html>
