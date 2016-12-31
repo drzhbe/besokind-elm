@@ -515,11 +515,11 @@ view model =
     [ viewTopbar model
     , div
         [ id "page-container"
-        , style [ ("width", "560px"), ("margin", "0 auto") ] ]
+        , style [ ("max-width", "560px"), ("margin", "0 auto") ] ]
         [ div
             [ id "content-cointainer"
             , style
-                [ ("margin-top", "56px")
+                [ ("margin", "56px 8px 8px 8px")
                 ]
             ]
             [ if model.loggedIn
@@ -550,8 +550,7 @@ viewTopbar model =
         [ div
             [ id "topbar-content"
             , style
-                [ ("width", "100%")
-                , ("max-width", "560px")
+                [ ("max-width", "560px")
                 , ("margin", "0 auto")
                 ]
             ]
@@ -561,8 +560,7 @@ viewTopbar model =
                 , style
                     [ ("max-width", "75%")
                     , ("display", "inline-block")
-                    --, ("margin", "0 20px") -- margin top = topbar height + 10px
-                    --, ("float", "left")
+                    , ("margin", "0 8px")
                     ]
                 ]
                 [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
@@ -643,26 +641,26 @@ viewCreateCard model =
                     , style [ ("float", "left"), ("border-radius", "4px") ]
                     ] []
                 ]
-            , textarea
-                [ class "card-input"
-                , placeholder "Какая помощь вам требуется?"
-                , Html.Attributes.value model.cardText
-                , rows (if expandedTextArea then 4 else 2)
-                , onInput SetCardText
-                , Html.Events.onFocus (CardInputFocus True)
-                , Html.Events.onBlur (CardInputFocus False)
-                , style
-                    [ ("outline", "none")
-                    , ("border", "0")
-                    , ("resize", "none")
-                    , ("font-size", "14px")
-                    , ("margin-left", "8px")
-                    , ("width", "470px")
-                    , ("padding", "8px 0 4px 8px")
-                    , ("border", "1px solid " ++ brandLighterColor)
-                    ]
+            , div [ style [ ("padding", "0 8px 0 56px") ] ]
+                [ textarea
+                    [ class "card-input"
+                    , placeholder "Какая помощь вам требуется?"
+                    , Html.Attributes.value model.cardText
+                    , rows (if expandedTextArea then 4 else 2)
+                    , onInput SetCardText
+                    , Html.Events.onFocus (CardInputFocus True)
+                    , Html.Events.onBlur (CardInputFocus False)
+                    , style
+                        [ ("outline", "none")
+                        , ("border", "0")
+                        , ("resize", "none")
+                        , ("font-size", "14px")
+                        , ("width", "100%")
+                        , ("padding", "8px 0 4px 8px")
+                        , ("border", "1px solid " ++ brandLighterColor)
+                        ]
+                    ] []
                 ]
-                []
             , div
                 [ style
                     [ ("display", (if expandedTextArea then "block" else "none"))
