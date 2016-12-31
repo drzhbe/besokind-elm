@@ -568,55 +568,53 @@ viewTopbar model =
                 , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
                 , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Уведомления" ]
                 ]
-            , div
-                [ style [ ("float", "right"), ("margin-right", "4px") ] ]
-                [ if model.loggedIn
-                    then div
-                        [ style
-                            [ ("position", "relative")
-                            --, ("float", "right")
-                            , ("width", "46px")
-                            ]
+            , if model.loggedIn
+                then div
+                    [ style
+                        [ ("position", "relative")
+                        , ("float", "right")
+                        , ("width", "46px")
+                        , ("margin-right", "4px")
                         ]
-                        [ img
-                            [ onWithOptions
-                                "click"
-                                (Options True True)
-                                (Json.succeed
-                                    (if (List.length model.popups) > 0
-                                        then HideAllPopups
-                                        else ShowProfileMenuPopup))
-                            , class "topbar__user-photo"
-                            , src model.user.photoURL
-                            , width 38
-                            , height 38
-                            , style
-                                [ ("border-radius", "100%")
-                                , ("margin", "4px")
-                                , ("cursor", "pointer")
-                                ]
-                            ]
-                            []
-                        , if (List.member ProfileMenu model.popups)
-                            then viewProfileMenu model
-                            else text ""
-                        ]
-                    else div
-                        [ class "topbar__login-btn"
-                        , onClick Login
+                    ]
+                    [ img
+                        [ onWithOptions
+                            "click"
+                            (Options True True)
+                            (Json.succeed
+                                (if (List.length model.popups) > 0
+                                    then HideAllPopups
+                                    else ShowProfileMenuPopup))
+                        , class "topbar__user-photo"
+                        , src model.user.photoURL
+                        , width 38
+                        , height 38
                         , style
-                            [ ("margin", "4px 10px 4px 4px")
-                            --, ("float", "right")
-                            , ("color", "bisque")
-                            , ("font-weight", "500")
-                            , ("height", "38px")
-                            , ("line-height", "38px")
-                            , ("text-align", "center")
+                            [ ("border-radius", "100%")
+                            , ("margin", "4px")
                             , ("cursor", "pointer")
                             ]
                         ]
-                        [ text "Войти" ]
-                ]
+                        []
+                    , if (List.member ProfileMenu model.popups)
+                        then viewProfileMenu model
+                        else text ""
+                    ]
+                else div
+                    [ class "topbar__login-btn"
+                    , onClick Login
+                    , style
+                        [ ("margin", "4px 10px 4px 4px")
+                        , ("float", "right")
+                        , ("color", "bisque")
+                        , ("font-weight", "500")
+                        , ("height", "38px")
+                        , ("line-height", "38px")
+                        , ("text-align", "center")
+                        , ("cursor", "pointer")
+                        ]
+                    ]
+                    [ text "Войти" ]
             ]
         ]
 
@@ -699,8 +697,12 @@ viewCard model card =
         , style [ ("padding", "10px") ]
         ]
         [ viewCardHeader card (Set.member card.authorId model.usersOnline)
-        , div [ class "list-card-title" ] [ text card.title ]
-        , div [ class "list-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
+        , div [ class "card-title" ] [ text card.title ]
+        , div
+            [ class "card-body"
+            , style [ ("margin-top", "10px"), ("word-wrap", "break-word") ]
+            ]
+            [ text card.body ]
         , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
             [ viewCardKarmaPrice model.user.moderator card ]
         ]
@@ -710,8 +712,12 @@ viewCardFull : Model -> Card -> Html Msg
 viewCardFull model card =
     div [ style [ ("padding", "10px") ] ]
     [ viewCardHeader card (Set.member card.authorId model.usersOnline)
-    , div [ class "full-card-title"] [ text card.title ]
-    , div [ class "full-card-body", style [ ("margin-top", "10px") ] ] [ text card.body ]
+    , div [ class "card-title"] [ text card.title ]
+    , div
+        [ class "card-body"
+        , style [ ("margin-top", "10px"), ("word-wrap", "break-word") ]
+        ]
+        [ text card.body ]
     , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
         [ viewCardKarmaPrice model.user.moderator card
         , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
