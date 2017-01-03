@@ -582,8 +582,8 @@ viewTopbar model =
                     ]
                 ]
                 [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
-                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Призы" ]
-                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
+                --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Призы" ]
+                --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
                 , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Уведомления" ]
                 ]
             , if model.loggedIn
