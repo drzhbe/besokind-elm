@@ -88,6 +88,12 @@
     app.ports.addCardToList.send(card);
   }
 
+  function updateCard(card) {
+    card = card.val();
+    card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+    app.ports.updateCard.send(card);
+  }
+
 
   /*
     depends on `dateFnsDistanceInWords`
@@ -108,6 +114,7 @@
       if (!subscribedToNewCards) {
         subscribedToNewCards = true;
         dbCards.limitToLast(12).on('child_added', addCardToList);
+        dbCards.limitToLast(12).on('child_changed', updateCard);
       }
     }).catch(function(error) {
       console.error('error', typeof error, error);

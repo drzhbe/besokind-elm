@@ -190,6 +190,7 @@ type Msg
     | ShowCards (List Card)
     | ShowUserCards (List Card)
     | AddCardToList Card
+    | UpdateCard Card
     | ShowCard Card
     | SetActiveUser User
     | ShowUserTakenCards (List Card)
@@ -246,19 +247,24 @@ update msg model =
               }, Cmd.none )
 
         CreateCard ->
-            ( { model | cardText = "" }, createCard 
-                { id = ""
-                , authorId = model.user.uid
-                , authorName = model.user.name
-                , authorPhotoURL = model.user.photoURL
-                , creationTime = 0
-                , creationTimeFriendly = ""
-                , karma = 0
-                , place = model.place
-                , title = model.title
-                , body = model.cardText
-                , assignedTo = ""
-                } )
+            ( { model | cardText = "" }
+            , Cmd.batch
+                [ createCard
+                    { id = ""
+                    , authorId = model.user.uid
+                    , authorName = model.user.name
+                    , authorPhotoURL = model.user.photoURL
+                    , creationTime = 0
+                    , creationTimeFriendly = ""
+                    , karma = 0
+                    , place = model.place
+                    , title = model.title
+                    , body = model.cardText
+                    , assignedTo = ""
+                    }
+                , persistCardText ""
+                ]
+            )
 
         ShowCards cards ->
             ( { model | cards = (List.reverse cards) }, Cmd.none )
@@ -274,6 +280,9 @@ update msg model =
                         else ( model, Cmd.none )
                 Nothing ->
                     ( { model | cards = card :: model.cards }, Cmd.none )
+
+        UpdateCard card ->
+            ( { model | cards = List.map (replaceCard card) model.cards }, Cmd.none )
 
         ShowCard card ->
             ( { model | activeCard = card }, Cmd.none )
@@ -340,6 +349,13 @@ update msg model =
             , Cmd.none )
 
 
+replaceCard : Card -> Card -> Card
+replaceCard newCard oldCard =
+    if newCard.id == oldCard.id
+    then newCard
+    else oldCard
+
+
 -- OUTGOING PORTS
 
 port login : String -> Cmd msg
@@ -365,6 +381,7 @@ port authStateChanged : (User -> msg) -> Sub msg
 port showCards : ((List Card) -> msg) -> Sub msg
 port userCardsFetched : ((List Card) -> msg) -> Sub msg
 port addCardToList : (Card -> msg) -> Sub msg
+port updateCard : (Card -> msg) -> Sub msg
 port cardFetched : (Card -> msg) -> Sub msg
 port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
 port userFetched : (User -> msg) -> Sub msg
@@ -383,6 +400,7 @@ subscriptions model =
         , showCards ShowCards
         , userCardsFetched ShowUserCards
         , addCardToList AddCardToList
+        , updateCard UpdateCard
         , cardFetched ShowCard
         , cardVolunteersFetched ShowVolunteers
         , userFetched SetActiveUser
@@ -558,9 +576,9 @@ viewTopbar model =
                 [ id "nav"
                 , class "horizontal-list"
                 , style
-                    [ ("max-width", "75%")
-                    , ("display", "inline-block")
+                    [ ("display", "inline-block")
                     , ("margin", "0 12px")
+                    --, ("max-width", "75%")
                     ]
                 ]
                 [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
