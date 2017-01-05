@@ -95,7 +95,7 @@ type alias Model =
     , activeUser : User
     , userTakenCards : (List Card)
     , karma : (String, Int)
-    , popups : (List Popup)
+    , popup : Popup
     , notifications : (Dict.Dict String Notification)
     , usersOnline : (Set.Set String)
     }
@@ -125,10 +125,6 @@ type alias Card =
     , assignedTo : String
     }
 
-type alias Notification =
-    { id : String
-    , name : String
-    }
 
 type alias IM =
     { id : String
@@ -137,8 +133,41 @@ type alias IM =
     , date : String
     }
 
+
 type Popup
-    = ProfileMenu
+    = NoPopup
+    | ProfileMenuPopup
+    | NotificationsListPopup
+
+
+type alias Notification =
+    { id : String
+    , name : String
+    , read : Bool
+    , userId : String
+    , cardId : String
+    }
+
+
+--type Notification
+--    = UserTookCardNotification { id : String, userId : String, userId : String, cardId : String }
+--    | UserAssignedToCardNotification { id : String, userId : String, userId : String, cardId : String }
+
+
+--type alias UserAssignedToCardNotification =
+--    { id : String
+--    , name : String
+--    , userId : String
+--    , cardId : String
+--    }
+
+
+--type alias UserTookCardNotification =
+--    { id : String
+--    , name : String
+--    , userId : String
+--    , cardId : String
+--    }
 
 
 init : Navigation.Location -> (Model, Cmd Msg)
@@ -161,7 +190,7 @@ init location =
             , activeUser = (User "" "" "" "" 0 False)
             , userTakenCards = []
             , karma = ("", 0)
-            , popups = []
+            , popup = NoPopup
             , notifications = Dict.empty
             , usersOnline = Set.empty
             }
@@ -201,9 +230,11 @@ type Msg
     | HandleRemoveCard Card
     | AssignVolunteer Card User
     | ShowProfileMenuPopup
-    | HideAllPopups
+    | ShowNotificationsPopup
+    | HidePopup
     | AddNotification Notification
     | RemoveNotification String
+    --| MarkNotificationsAsRead (List String)
     | AddOnlineUser String
     | RemoveOnlineUser String
 
@@ -321,12 +352,21 @@ update msg model =
             ( model, assignVolunteer { card = card, user = user } )
 
         ShowProfileMenuPopup ->
-            ( { model | popups = Debug.log "show profile" ProfileMenu :: model.popups }, Cmd.none )
+            ( { model | popup = ProfileMenuPopup }, Cmd.none )
 
-        HideAllPopups ->
-            if List.isEmpty model.popups
+        ShowNotificationsPopup ->
+            let
+                notReadNotificationIdList = Dict.keys <| Dict.filter (\key notification -> not notification.read) model.notifications
+            in
+                ( { model
+                    | popup = NotificationsListPopup
+                    , notifications = Dict.map updateNotificationAsRead model.notifications
+                }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
+
+        HidePopup ->
+            if model.popup == NoPopup
             then ( model, Cmd.none )
-            else ( { model | popups = [] }, Cmd.none )
+            else ( { model | popup = NoPopup }, Cmd.none )
 
         AddNotification notification ->
             ( { model
@@ -337,6 +377,12 @@ update msg model =
             ( { model
                 | notifications = Dict.remove notificationId model.notifications }
             , Cmd.none )
+
+            -- TODO not used
+        --MarkNotificationsAsRead notificationIdList ->
+        --    ( { model
+        --        | notifications = Dict.map updateNotificationAsRead model.notifications }
+        --    , markNotificationsAsRead { userId = model.user.uid, notificationIdList = notificationIdList } )
 
         AddOnlineUser userId ->
             ( { model
@@ -356,6 +402,13 @@ replaceCard newCard oldCard =
     else oldCard
 
 
+updateNotificationAsRead : String -> Notification -> Notification
+updateNotificationAsRead notificationId notification =
+    if not notification.read
+    then { notification | read = True }
+    else notification
+
+
 -- OUTGOING PORTS
 
 port login : String -> Cmd msg
@@ -373,7 +426,7 @@ port removeCard : Card -> Cmd msg
 port assignVolunteer : { card: Card, user: User } -> Cmd msg
 port persistCardText : String -> Cmd msg
 port removeNotification : String -> Cmd msg
-
+port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
 
 -- SUBSCRIPTIONS
 
@@ -529,7 +582,7 @@ viewPage model =
 
 view : Model -> Html Msg
 view model =
-    div [ onClick HideAllPopups ]
+    div [ onClick HidePopup ]
     [ viewTopbar model
     , div
         [ id "page-container"
@@ -551,89 +604,141 @@ view model =
 
 viewTopbar : Model -> Html Msg
 viewTopbar model =
-    div
-        [ id "topbar"
-        , style
-            [ ("position", "fixed")
-            , ("z-index", "2")
-            , ("top", "0")
-            , ("left", "0")
-            , ("right", "0")
-            , ("height", "46px")
-            , ("background", brandColor)
-            , ("border-radius", "0 0 8px 8px")
-            , ("visible", "false")
-            ]
-        ]
-        [ div
-            [ id "topbar-content"
+    let
+        hasNotifications = Dict.size model.notifications > 0
+        unreadNotificationsCount = Dict.size <| Dict.filter (\_ notification -> not notification.read) model.notifications
+    in
+        div
+            [ id "topbar"
             , style
-                [ ("max-width", "560px")
-                , ("margin", "0 auto")
+                [ ("position", "fixed")
+                , ("z-index", "2")
+                , ("top", "0")
+                , ("left", "0")
+                , ("right", "0")
+                , ("height", "46px")
+                , ("background", brandColor)
+                , ("border-radius", "0 0 8px 8px")
+                , ("visible", "false")
                 ]
             ]
-            [ ul
-                [ id "nav"
-                , class "horizontal-list"
+            [ div
+                [ id "topbar-content"
                 , style
-                    [ ("display", "inline-block")
-                    , ("margin", "0 12px")
-                    --, ("max-width", "75%")
+                    [ ("max-width", "560px")
+                    , ("margin", "0 auto")
                     ]
                 ]
-                [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
-                --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Призы" ]
-                --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
-                , li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Уведомления" ]
-                ]
-            , if model.loggedIn
-                then div
-                    [ style
-                        [ ("position", "relative")
-                        , ("float", "right")
-                        , ("width", "46px")
-                        , ("margin-right", "4px")
+                [ ul
+                    [ id "nav"
+                    , class "horizontal-list"
+                    , style
+                        [ ("display", "inline-block")
+                        , ("margin", "0 12px")
+                        --, ("max-width", "75%")
                         ]
                     ]
-                    [ img
-                        [ onWithOptions
+                    [ li [ class "nav-item" ] [ a [ href (toHash PageHome) ] [ text "Дела" ] ]
+                    --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Призы" ]
+                    --, li [ class "nav-item", style [ ("color", "#ffb494") ] ] [ text "Рейтинг" ]
+                    , li
+                        [ classList
+                            [ ("nav-item", True)
+                            , ("_disabled", unreadNotificationsCount == 0)
+                            ]
+                        , onWithOptions
                             "click"
                             (Options True True)
                             (Json.succeed
-                                (if (List.length model.popups) > 0
-                                    then HideAllPopups
-                                    else ShowProfileMenuPopup))
-                        , class "topbar__user-photo"
-                        , src model.user.photoURL
-                        , width 38
-                        , height 38
+                                (if model.popup /= NoPopup
+                                    then HidePopup
+                                    else ShowNotificationsPopup))
+                        ]
+                        [ text "Уведомления"
+                        , if model.popup == NotificationsListPopup
+                            then viewNotificationsListPopup model
+                            else text ""
+                        ]
+                    ]
+                , if model.loggedIn
+                    then div
+                        [ style
+                            [ ("position", "relative")
+                            , ("float", "right")
+                            , ("width", "46px")
+                            , ("margin-right", "4px")
+                            ]
+                        ]
+                        [ img
+                            [ onWithOptions
+                                "click"
+                                (Options True True)
+                                (Json.succeed
+                                    (if model.popup /= NoPopup
+                                        then HidePopup
+                                        else ShowProfileMenuPopup))
+                            , class "topbar__user-photo"
+                            , src model.user.photoURL
+                            , width 38
+                            , height 38
+                            , style
+                                [ ("border-radius", "100%")
+                                , ("margin", "4px")
+                                , ("cursor", "pointer")
+                                ]
+                            ]
+                            []
+                        , if model.popup == ProfileMenuPopup
+                            then viewProfileMenuPopup model
+                            else text ""
+                        ]
+                    else div
+                        [ class "topbar__login-btn"
+                        , onClick Login
                         , style
-                            [ ("border-radius", "100%")
-                            , ("margin", "4px")
+                            [ ("margin", "4px 10px 4px 4px")
+                            , ("float", "right")
+                            , ("color", "bisque")
+                            , ("font-weight", "500")
+                            , ("height", "38px")
+                            , ("line-height", "38px")
+                            , ("text-align", "center")
                             , ("cursor", "pointer")
                             ]
                         ]
-                        []
-                    , if (List.member ProfileMenu model.popups)
-                        then viewProfileMenu model
-                        else text ""
-                    ]
-                else div
-                    [ class "topbar__login-btn"
-                    , onClick Login
-                    , style
-                        [ ("margin", "4px 10px 4px 4px")
-                        , ("float", "right")
-                        , ("color", "bisque")
-                        , ("font-weight", "500")
-                        , ("height", "38px")
-                        , ("line-height", "38px")
-                        , ("text-align", "center")
-                        , ("cursor", "pointer")
-                        ]
-                    ]
-                    [ text "Войти" ]
+                        [ text "Войти" ]
+                ]
             ]
+
+
+viewNotificationsListPopup : Model -> Html Msg
+viewNotificationsListPopup model =
+    ul
+        [ style
+            [ ("position", "absolute")
+            --, ("right", "0")
+            --, ("top", "54px") -- 46 topbar + 8 margin
+            , ("width", "auto")
+            , ("background", "white")
+            , ("margin", "0")
+            , ("padding", "10px")
+            , ("border-radius", "5px")
+            , ("border", "1px solid #ddd")
+            , ("white-space", "nowrap")
+            , ("line-height", "1em")
+            ]
+        ]
+        (List.map viewNotification (Dict.values model.notifications))
+
+
+viewNotification : Notification -> Html Msg
+viewNotification notification =
+    li
+        [ style
+            [ ("color", grayColor)
+            ]
+        ]
+        [ text notification.name
         ]
 
 
@@ -869,8 +974,8 @@ viewProfile loggedIn user =
     ]
 
 
-viewProfileMenu : Model -> Html Msg
-viewProfileMenu model =
+viewProfileMenuPopup : Model -> Html Msg
+viewProfileMenuPopup model =
     ul
         [ style
             [ ("position", "absolute")

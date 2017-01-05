@@ -54,6 +54,12 @@
     margin-right: 10px;
     color: bisque;
   }
+  .nav-item:hover {
+    cursor: pointer;
+  }
+  .nav-item._disabled {
+    color: #ffb494;
+  }
   ._assigned {
     background: #f9f9f9;
   }
@@ -99,26 +105,28 @@
     depends on `dateFnsDistanceInWords`
   */
   function getCards(callback) {
+    dbCards.limitToLast(12).on('child_added', addCardToList);
+    dbCards.limitToLast(12).on('child_changed', updateCard);
     // todo не работает такая фильтрация
     // .orderByChild('assignedTo').equalTo('')
-    dbCards.limitToLast(12).once('value', function(snapshot) {
-      var cards = [];
-      snapshot.forEach(function(card) {
-        var card = card.val();
-        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
-        cards.push(card);
-      });
-      console.log('cards', typeof cards, cards);
-      app.ports.showCards.send(cards);
+    // dbCards.limitToLast(12).once('value', function(snapshot) {
+    //   var cards = [];
+    //   snapshot.forEach(function(card) {
+    //     var card = card.val();
+    //     card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+    //     cards.push(card);
+    //   });
+    //   console.log('cards', typeof cards, cards);
+    //   app.ports.showCards.send(cards);
 
-      if (!subscribedToNewCards) {
-        subscribedToNewCards = true;
-        dbCards.limitToLast(12).on('child_added', addCardToList);
-        dbCards.limitToLast(12).on('child_changed', updateCard);
-      }
-    }).catch(function(error) {
-      console.error('error', typeof error, error);
-    });
+    //   if (!subscribedToNewCards) {
+    //     subscribedToNewCards = true;
+    //     dbCards.limitToLast(12).on('child_added', addCardToList);
+    //     dbCards.limitToLast(12).on('child_changed', updateCard);
+    //   }
+    // }).catch(function(error) {
+    //   console.error('error', typeof error, error);
+    // });
   }
 
 
@@ -174,15 +182,21 @@
         console.error('## error during [getting user info]:', error);
       });
 
-      userRef.child('notifications').on('child_added', function(notification) {
-        app.ports.notificationAdded.send(notification.val());
-      });
-      userRef.child('notifications').on('child_removed', function(notification) {
-        app.ports.notificationREmoved.send(notification.val());
-      });
+
+      // -- user related subscribes
+
+
+      userRef.child('notifications')
+        .on('child_added', function(notification) {
+          app.ports.notificationAdded.send(notification.val());
+        })
+        .on('child_removed', function(notification) {
+          app.ports.notificationRemoved.send(notification.val());
+        });
+
       userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
-      var usersOnlineRef = database.ref('users-online');
-      usersOnlineRef.child(user.uid).onDisconnect().remove();
+
+      database.ref('users-online').child(user.uid).onDisconnect().remove();
     } else {
       app.ports.authStateChanged.send({
         uid: '',
@@ -261,7 +275,7 @@
     updates['/cards/' + cardId] = card;
     database.ref()
       .update(updates)
-      .then(getCards)
+      // .then(getCards)
       .catch(function(error) {
         console.error('## error during [pushing card]:', card, error);
       });
@@ -315,6 +329,14 @@
     var updates = {};
     updates['card-volunteers/' + o.card.id + '/' + o.user.uid] = o.user;
     updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = o.card;
+    var authorNotificationId = database.ref('users/' + o.card.authorId + '/notifications').push().key;
+    updates['users/' + o.card.authorId + '/notifications/' + authorNotificationId] = {
+      id: authorNotificationId,
+      name: 'userTookCard',
+      read: false,
+      cardId: o.card.id,
+      userId: o.user.uid
+    };
     database.ref()
       .update(updates)
       .then(function() {
@@ -372,7 +394,11 @@
     updates['users/' + volunteerId + '/rooms/' + roomId] = true;
     var volunteerNotificationId = database.ref('users/' + volunteerId + '/notifications').push().key;
     updates['users/' + volunteerId + '/notifications/' + volunteerNotificationId] = {
-      name: 'userAssignedToCard'
+      id: volunteerNotificationId,
+      name: 'userAssignedToCard',
+      read: false,
+      cardId: roomId,
+      userId: volunteerId
     };
 
     database.ref()
@@ -392,7 +418,6 @@
   app.ports.assignVolunteer.subscribe(function(o) {
     var updates = {};
       database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
-        var volunteers = [];
         snapshot.forEach(function(volunteer) {
           updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedTo'] = o.user.uid;
         });
@@ -408,6 +433,22 @@
           .catch(function(error) {
             console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
           });
+      });
+  });
+
+  /*
+    port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
+  */
+  app.ports.markNotificationsAsRead.subscribe(function(o) {
+    var updates = {};
+    o.notificationIdList.forEach(function(notificationId) {
+      updates['users/' + o.userId + '/notifications/' + notificationId] = true;
+    });
+    database.ref()
+      .update(updates)
+      .then(function() {})
+      .catch(function(error) {
+        console.error('## error during [marking notifications as read]:', o.notificationIdList, 'for user:', o.userId, error);
       });
   });
 
