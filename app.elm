@@ -11,7 +11,7 @@ import Dict
 
 
 main =
-    Navigation.program UrlChange
+    Navigation.program HandleUrlChange
         { init = init
         , view = view
         , update = update
@@ -209,7 +209,8 @@ defaultPage page =
 
 type Msg
     = NoOp
-    | UrlChange Navigation.Location
+    | HandleUrlChange Navigation.Location
+    | SetPage Page
     | SetCardText String
     | CardInputFocus Bool
     | Login
@@ -245,13 +246,16 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        UrlChange location ->
+        HandleUrlChange location ->
             let
                 page = ensurePage (Url.parseHash pageParser location)
             in
                 ( { model | page = page }
                 , fetchData page
                 )
+
+        SetPage page ->
+            ( model, Navigation.newUrl <| toHash page )
 
         SetCardText text ->
             ( { model | cardText = text }, Cmd.none )
@@ -714,7 +718,8 @@ viewTopbar model =
 viewNotificationsListPopup : Model -> Html Msg
 viewNotificationsListPopup model =
     ul
-        [ style
+        [ class "notification-list"
+        , style
             [ ("position", "absolute")
             --, ("right", "0")
             --, ("top", "54px") -- 46 topbar + 8 margin
@@ -738,8 +743,24 @@ viewNotification notification =
             [ ("color", grayColor)
             ]
         ]
-        [ text notification.name
+        [ if notification.name == "userTookCard"
+            then viewUserTookCardNotification notification
+            else if notification.name == "userAssignedToCard"
+            then viewUserAssignedToCardNotification notification
+            else text notification.name
         ]
+
+
+viewUserTookCardNotification : Notification -> Html Msg
+viewUserTookCardNotification notification =
+    div [ onClick (SetPage (PageCard notification.cardId))]
+        [ text "Кто-то решил вам помочь!" ]
+
+
+viewUserAssignedToCardNotification : Notification -> Html Msg
+viewUserAssignedToCardNotification notification =
+    div [ onClick (SetPage (PageCard notification.cardId))]
+        [ text "Вас назначили помощником!" ]
 
 
 viewCreateCard : Model -> Html Msg
@@ -864,11 +885,6 @@ viewCardFull model card =
         then div []
         [ h3 [] [ text "Желающие помочь:" ]
         , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
-        ]
-        else text ""
-    , if not (String.isEmpty card.assignedTo)
-        then div []
-        [
         ]
         else text ""
     ]

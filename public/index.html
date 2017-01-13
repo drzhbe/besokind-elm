@@ -60,6 +60,15 @@
   .nav-item._disabled {
     color: #ffb494;
   }
+  .notification-list li {
+    display: block;
+    margin-top: 4px;
+  }
+  .notification-list li:hover {
+    /*background: #f9f9f9;*/
+    background: #f1f1f1;
+    width: 100%;
+  }
   ._assigned {
     background: #f9f9f9;
   }
@@ -442,7 +451,7 @@
   app.ports.markNotificationsAsRead.subscribe(function(o) {
     var updates = {};
     o.notificationIdList.forEach(function(notificationId) {
-      updates['users/' + o.userId + '/notifications/' + notificationId] = true;
+      updates['users/' + o.userId + '/notifications/' + notificationId + '/read'] = true;
     });
     database.ref()
       .update(updates)
