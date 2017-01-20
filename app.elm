@@ -146,8 +146,10 @@ type alias Notification =
     , read : Bool
     , userId : String
     , cardId : String
+    , cardAuthorId: String
+    , userName : String
     }
-
+-- TODO: download author name and phoot to show in notifciation
 
 --type Notification
 --    = UserTookCardNotification { id : String, userId : String, userId : String, cardId : String }
@@ -229,7 +231,7 @@ type Msg
     | RemoveCard Card
     | ShowVolunteers (List User)
     | HandleRemoveCard Card
-    | AssignVolunteer Card User
+    | AssignVolunteer Card User String
     | ShowProfileMenuPopup
     | ShowNotificationsPopup
     | HidePopup
@@ -352,8 +354,8 @@ update msg model =
         HandleRemoveCard card ->
             ( model, Navigation.newUrl (toHash PageHome) )
 
-        AssignVolunteer card user ->
-            ( model, assignVolunteer { card = card, user = user } )
+        AssignVolunteer card user cardAuthorName ->
+            ( model, assignVolunteer { card = card, user = user, userName = cardAuthorName } )
 
         ShowProfileMenuPopup ->
             ( { model | popup = ProfileMenuPopup }, Cmd.none )
@@ -427,7 +429,7 @@ port fetchUserTakenCards : String -> Cmd msg
 port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
 port takeCard : { user : User, card : Card } -> Cmd msg
 port removeCard : Card -> Cmd msg
-port assignVolunteer : { card: Card, user: User } -> Cmd msg
+port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
 port persistCardText : String -> Cmd msg
 port removeNotification : String -> Cmd msg
 port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
@@ -721,13 +723,9 @@ viewNotificationsListPopup model =
         [ class "notification-list"
         , style
             [ ("position", "absolute")
-            --, ("right", "0")
-            --, ("top", "54px") -- 46 topbar + 8 margin
             , ("width", "auto")
             , ("background", "white")
             , ("margin", "0")
-            , ("padding", "10px")
-            , ("border-radius", "5px")
             , ("border", "1px solid #ddd")
             , ("white-space", "nowrap")
             , ("line-height", "1em")
@@ -747,20 +745,42 @@ viewNotification notification =
             then viewUserTookCardNotification notification
             else if notification.name == "userAssignedToCard"
             then viewUserAssignedToCardNotification notification
-            else text notification.name
+            else div [] [ text notification.name ]
         ]
 
 
 viewUserTookCardNotification : Notification -> Html Msg
 viewUserTookCardNotification notification =
-    div [ onClick (SetPage (PageCard notification.cardId))]
-        [ text "Кто-то решил вам помочь!" ]
+    div []
+        [ span
+            [ class "light-btn"
+            , onClick (SetPage (PageUser notification.userId))
+            ]
+            [ text notification.userName ]
+        , text " хочет вам "
+        , span
+            [ class "light-btn"
+            , onClick (SetPage (PageCard notification.cardId))
+            ]
+            [ text "помочь" ]
+        ]
 
 
 viewUserAssignedToCardNotification : Notification -> Html Msg
 viewUserAssignedToCardNotification notification =
-    div [ onClick (SetPage (PageCard notification.cardId))]
-        [ text "Вас назначили помощником!" ]
+    div []
+        [ span
+            [ class "light-btn"
+            , onClickPreventDefault (SetPage (PageUser notification.cardAuthorId))
+            ]
+            [ text notification.userName ]
+        , text " ждет вашей "
+        , span
+            [ class "light-btn"
+            , onClickPreventDefault (SetPage (PageCard notification.cardId))
+            ]
+            [ text "помощи" ]
+        ]
 
 
 viewCreateCard : Model -> Html Msg
@@ -962,7 +982,7 @@ viewVolunteer card currentUser volunteer =
             && not (String.isEmpty currentUser.uid)
             && currentUser.uid == card.authorId
             then div
-                [ onClick (AssignVolunteer card volunteer)
+                [ onClick (AssignVolunteer card volunteer currentUser.name)
                 , style (buttonStyle ++ takeButtonStyle)
                 ]
                 [ text "Принять помощь" ]
@@ -1023,3 +1043,11 @@ textContentDecoder =
 innerHTMLDecoder : Json.Decoder String
 innerHTMLDecoder =
     Json.at ["target", "innerHTML"] Json.string
+
+onClickPreventDefault : msg -> Attribute msg
+onClickPreventDefault clickHandler =
+    onWithOptions
+        "click"
+        (Options True True)
+        (Json.succeed
+            clickHandler)

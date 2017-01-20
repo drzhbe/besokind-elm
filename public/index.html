@@ -53,21 +53,32 @@
     height: 48px;
     margin-right: 10px;
     color: bisque;
-  }
-  .nav-item:hover {
     cursor: pointer;
   }
   .nav-item._disabled {
     color: #ffb494;
   }
+  .notification-list {
+    cursor: auto;
+  }
   .notification-list li {
     display: block;
-    margin-top: 4px;
+  }
+  .notification-list li:first-child {
+    border-radius: 5px 5px 0 0;
+    padding-top: 4px;
+    /*padding: 12px 10px 8px 10px;*/
+  }
+  .notification-list li:last-child {
+    border-radius: 0 0 5px 5px;
+    padding-bottom: 4px;
+    /*padding: 8px 10px 12px 10px;*/
   }
   .notification-list li:hover {
-    /*background: #f9f9f9;*/
-    background: #f1f1f1;
-    width: 100%;
+    background: #f9f9f9;
+  }
+  .notification-list li div {
+    padding: 8px 10px;
   }
   ._assigned {
     background: #f9f9f9;
@@ -344,7 +355,9 @@
       name: 'userTookCard',
       read: false,
       cardId: o.card.id,
-      userId: o.user.uid
+      userId: o.user.uid,
+      cardAuthorId: o.card.authorId,
+      userName: o.user.name
     };
     database.ref()
       .update(updates)
@@ -393,7 +406,7 @@
   });
 
 
-  function createRoom(roomId, authorId, volunteerId) {
+  function createRoom(roomId, authorId, volunteerId, cardAuthorName) {
     var roomExists = false;
 
     var updates = {};
@@ -407,7 +420,9 @@
       name: 'userAssignedToCard',
       read: false,
       cardId: roomId,
-      userId: volunteerId
+      userId: volunteerId,
+      cardAuthorId: authorId,
+      userName: cardAuthorName
     };
 
     database.ref()
@@ -422,7 +437,7 @@
 
 
   /*
-    port assignVolunteer : { card: Card, user: User } -> Cmd msg
+    port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
   */
   app.ports.assignVolunteer.subscribe(function(o) {
     var updates = {};
@@ -437,7 +452,7 @@
         database.ref()
           .update(updates)
           .then(function() {
-            createRoom(o.card.id, o.card.authorId, o.user.uid);
+            createRoom(o.card.id, o.card.authorId, o.user.uid, o.userName);
           })
           .catch(function(error) {
             console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
