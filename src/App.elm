@@ -1,4 +1,4 @@
-port module Main exposing (..)
+module Main exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput, targetValue, keyCode, on, onWithOptions, Options)
 import Html.Attributes exposing (..)
@@ -8,6 +8,13 @@ import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import String
 import Set
 import Dict
+
+import Types exposing (..)
+import Ports exposing (..)
+import Update exposing (update)
+import Pages exposing (toHash, defaultPage, updatePage)
+import Data exposing (fetchDataForPage)
+import ChatPage
 
 
 main =
@@ -19,136 +26,7 @@ main =
         }
 
 
--- URL PARSERS
 
-
-type Page
-    = PageHome
-    | PageNotFound
-    | PageCards
-    | PageCard String
-    | PagePrizes
-    | PagePrize String
-    | PageUser String
-
-
-ensurePage : Maybe Page -> Page
-ensurePage page =
-    case page of
-        Nothing ->
-            PageNotFound
-        Just page ->
-            page
-
-toHash : Page -> String
-toHash page =
-    case page of
-        PageHome ->
-            "#/home"
-
-        PageNotFound ->
-            "#/404"
-
-        PageCards ->
-            "#/cards"
-
-        PageCard id ->
-            "#/card/" ++ id
-
-        PagePrizes ->
-            "#/prizes"
-
-        PagePrize id ->
-            "#/prize/" ++ id
-
-        PageUser id ->
-            "#/user/" ++ id
-
-
-pageParser : Parser (Page -> a) a
-pageParser =
-    oneOf
-        [ Url.map PageHome (Url.s "home")
-        , Url.map PageCards (Url.s "cards")
-        , Url.map PageCard (Url.s "card" </> Url.string)
-        , Url.map PagePrizes (Url.s "prizes")
-        , Url.map PagePrize (Url.s "prize" </> Url.string)
-        , Url.map PageUser (Url.s "user" </> Url.string)
-        ]
-
-
--- MODEL
-
-
-type alias Model =
-    { page : Page
-    , loggedIn : Bool
-    , title : String
-    , cardText : String
-    , cardInputFocus : Bool
-    , place : String
-    , user : User
-    , cards : (List Card)
-    , userCards : (List Card)
-    , activeCard : Card
-    , activeCardVolunteers : (List User)
-    , activeUser : User
-    , userTakenCards : (List Card)
-    , karma : (String, Int)
-    , popup : Popup
-    , notifications : (Dict.Dict String Notification)
-    , usersOnline : (Set.Set String)
-    }
-
-
-type alias User =
-    { uid : String
-    , name : String
-    , email : String
-    , photoURL : String
-    , karma: Int
-    , moderator : Bool
-    }
-
-
-type alias Card =
-    { id : String
-    , authorId : String
-    , authorName : String
-    , authorPhotoURL : String
-    , creationTime : Float
-    , creationTimeFriendly : String
-    , karma : Int
-    , place : String
-    , title : String
-    , body : String
-    , assignedTo : String
-    }
-
-
-type alias IM =
-    { id : String
-    , userId : String
-    , text : String
-    , date : String
-    }
-
-
-type Popup
-    = NoPopup
-    | ProfileMenuPopup
-    | NotificationsListPopup
-
-
-type alias Notification =
-    { id : String
-    , name : String
-    , read : Bool
-    , userId : String
-    , cardId : String
-    , cardAuthorId: String
-    , userName : String
-    }
 -- TODO: download author name and phoot to show in notifciation
 
 --type Notification
@@ -175,9 +53,8 @@ type alias Notification =
 init : Navigation.Location -> (Model, Cmd Msg)
 init location =
     let
-        page = defaultPage (ensurePage (Url.parseHash pageParser location))
-    in
-        (
+        page = defaultPage location
+        model =
             { page = page
             , loggedIn = False
             , title = ""
@@ -188,322 +65,18 @@ init location =
             , cards = []
             , userCards = []
             , activeCard = (Card "" "" "" "" 0 "" 0 "" "" "" "")
+            , activeRoom = (Room "" [])
             , activeCardVolunteers = []
             , activeUser = (User "" "" "" "" 0 False)
             , userTakenCards = []
             , karma = ("", 0)
             , popup = NoPopup
             , notifications = Dict.empty
+            , rooms = []
             , usersOnline = Set.empty
             }
-        , fetchData page
-        )
-
-
-defaultPage : Page -> Page
-defaultPage page =
-    if page == PageNotFound
-    then PageHome
-    else page
-
-
--- UPDATE
-
-type Msg
-    = NoOp
-    | HandleUrlChange Navigation.Location
-    | SetPage Page
-    | SetCardText String
-    | CardInputFocus Bool
-    | Login
-    | Logout
-    | SetUser User
-    | CreateCard
-    | ShowCards (List Card)
-    | ShowUserCards (List Card)
-    | AddCardToList Card
-    | UpdateCard Card
-    | ShowCard Card
-    | SetActiveUser User
-    | ShowUserTakenCards (List Card)
-    | UpdateKarma String String String
-    | TakeCard User Card
-    | RemoveCard Card
-    | ShowVolunteers (List User)
-    | HandleRemoveCard Card
-    | AssignVolunteer Card User String
-    | ShowProfileMenuPopup
-    | ShowNotificationsPopup
-    | HidePopup
-    | AddNotification Notification
-    | RemoveNotification String
-    --| MarkNotificationsAsRead (List String)
-    | AddOnlineUser String
-    | RemoveOnlineUser String
-
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
-        HandleUrlChange location ->
-            let
-                page = ensurePage (Url.parseHash pageParser location)
-            in
-                ( { model | page = page }
-                , fetchData page
-                )
-
-        SetPage page ->
-            ( model, Navigation.newUrl <| toHash page )
-
-        SetCardText text ->
-            ( { model | cardText = text }, Cmd.none )
-
-        CardInputFocus focused ->
-            let
-                command =
-                    if focused
-                    then Cmd.none
-                    else persistCardText model.cardText
-            in
-                ( { model | cardInputFocus = focused }, command )
-
-        Login ->
-            ( model, login "google" )
-
-        Logout ->
-            ( model, logout "TODO port should recieve at least 1 arg :/" )
-
-        SetUser user ->
-            ( { model
-                | user = user
-                , loggedIn = not (String.isEmpty user.name)
-              }, Cmd.none )
-
-        CreateCard ->
-            ( { model | cardText = "" }
-            , Cmd.batch
-                [ createCard
-                    { id = ""
-                    , authorId = model.user.uid
-                    , authorName = model.user.name
-                    , authorPhotoURL = model.user.photoURL
-                    , creationTime = 0
-                    , creationTimeFriendly = ""
-                    , karma = 0
-                    , place = model.place
-                    , title = model.title
-                    , body = model.cardText
-                    , assignedTo = ""
-                    }
-                , persistCardText ""
-                ]
-            )
-
-        ShowCards cards ->
-            ( { model | cards = (List.reverse cards) }, Cmd.none )
-
-        ShowUserCards cards ->
-            ( { model | userCards = (List.reverse cards) }, Cmd.none )
-
-        AddCardToList card ->
-            case List.head model.cards of
-                Just c ->
-                    if card.creationTime > c.creationTime
-                        then ( { model | cards = card :: model.cards }, Cmd.none )
-                        else ( model, Cmd.none )
-                Nothing ->
-                    ( { model | cards = card :: model.cards }, Cmd.none )
-
-        UpdateCard card ->
-            ( { model | cards = List.map (replaceCard card) model.cards }, Cmd.none )
-
-        ShowCard card ->
-            ( { model | activeCard = card }, Cmd.none )
-
-        ShowVolunteers users ->
-            ( { model | activeCardVolunteers = users }, Cmd.none )
-
-        SetActiveUser user ->
-            ( { model | activeUser = user }, Cmd.none )
-
-        ShowUserTakenCards cards ->
-            ( { model | userTakenCards = cards }, Cmd.none )
-
-        UpdateKarma authorId cardId karma ->
-            ( model, updateKarma
-                { authorId = authorId
-                , cardId = cardId
-                , karma = Result.withDefault 0 (String.toInt karma)
-                }
-            )
-
-        TakeCard user card ->
-            ( model, takeCard
-                { user = user
-                , card = card
-                }
-            )
-
-        RemoveCard card ->
-            ( model, removeCard card )
-
-        HandleRemoveCard card ->
-            ( model, Navigation.newUrl (toHash PageHome) )
-
-        AssignVolunteer card user cardAuthorName ->
-            ( model, assignVolunteer { card = card, user = user, userName = cardAuthorName } )
-
-        ShowProfileMenuPopup ->
-            ( { model | popup = ProfileMenuPopup }, Cmd.none )
-
-        ShowNotificationsPopup ->
-            let
-                notReadNotificationIdList = Dict.keys <| Dict.filter (\key notification -> not notification.read) model.notifications
-            in
-                ( { model
-                    | popup = NotificationsListPopup
-                    , notifications = Dict.map updateNotificationAsRead model.notifications
-                }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
-
-        HidePopup ->
-            if model.popup == NoPopup
-            then ( model, Cmd.none )
-            else ( { model | popup = NoPopup }, Cmd.none )
-
-        AddNotification notification ->
-            ( { model
-                | notifications = Dict.insert notification.id notification model.notifications }
-            , Cmd.none )
-
-        RemoveNotification notificationId ->
-            ( { model
-                | notifications = Dict.remove notificationId model.notifications }
-            , Cmd.none )
-
-            -- TODO not used
-        --MarkNotificationsAsRead notificationIdList ->
-        --    ( { model
-        --        | notifications = Dict.map updateNotificationAsRead model.notifications }
-        --    , markNotificationsAsRead { userId = model.user.uid, notificationIdList = notificationIdList } )
-
-        AddOnlineUser userId ->
-            ( { model
-                | usersOnline = Set.insert (Debug.log "userId came online" userId) model.usersOnline }
-            , Cmd.none )
-
-        RemoveOnlineUser userId ->
-            ( { model
-                | usersOnline = Set.remove (Debug.log "userId went offline" userId) model.usersOnline }
-            , Cmd.none )
-
-
-replaceCard : Card -> Card -> Card
-replaceCard newCard oldCard =
-    if newCard.id == oldCard.id
-    then newCard
-    else oldCard
-
-
-updateNotificationAsRead : String -> Notification -> Notification
-updateNotificationAsRead notificationId notification =
-    if not notification.read
-    then { notification | read = True }
-    else notification
-
-
--- OUTGOING PORTS
-
-port login : String -> Cmd msg
-port logout : String -> Cmd msg
-port createCard : Card -> Cmd msg
-port fetchCard : String -> Cmd msg
-port fetchCardVolunteers : String -> Cmd msg
-port fetchStreamCards : String -> Cmd msg
-port fetchUserCards : String -> Cmd msg
-port fetchUser : String -> Cmd msg
-port fetchUserTakenCards : String -> Cmd msg
-port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
-port takeCard : { user : User, card : Card } -> Cmd msg
-port removeCard : Card -> Cmd msg
-port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
-port persistCardText : String -> Cmd msg
-port removeNotification : String -> Cmd msg
-port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
-
--- SUBSCRIPTIONS
-
-port authStateChanged : (User -> msg) -> Sub msg
-port showCards : ((List Card) -> msg) -> Sub msg
-port userCardsFetched : ((List Card) -> msg) -> Sub msg
-port addCardToList : (Card -> msg) -> Sub msg
-port updateCard : (Card -> msg) -> Sub msg
-port cardFetched : (Card -> msg) -> Sub msg
-port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
-port userFetched : (User -> msg) -> Sub msg
-port userTakenCardsFetched : ((List Card) -> msg) -> Sub msg
-port cardRemoved : (Card -> msg) -> Sub msg
-port cardTextFetched : (String -> msg) -> Sub msg
-port notificationAdded : (Notification -> msg) -> Sub msg
-port notificationRemoved : (String -> msg) -> Sub msg
-port onlineUserAdded : (String -> msg) -> Sub msg
-port onlineUserRemoved : (String -> msg) -> Sub msg
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ authStateChanged SetUser
-        , showCards ShowCards
-        , userCardsFetched ShowUserCards
-        , addCardToList AddCardToList
-        , updateCard UpdateCard
-        , cardFetched ShowCard
-        , cardVolunteersFetched ShowVolunteers
-        , userFetched SetActiveUser
-        , userTakenCardsFetched ShowUserTakenCards
-        , cardRemoved HandleRemoveCard
-        , cardTextFetched SetCardText
-        , notificationAdded AddNotification
-        , notificationRemoved RemoveNotification
-        , onlineUserAdded AddOnlineUser
-        , onlineUserRemoved RemoveOnlineUser
-        ]
-
-
-fetchData : Page -> Cmd Msg
-fetchData page =
-    case page of
-        PageHome ->
-            fetchStreamCards "TODO port should recieve at least 1 arg :/"
-
-        PageNotFound ->
-            Cmd.none
-
-        PageCards ->
-            Cmd.none
-
-        PageCard id ->
-            Cmd.batch
-                [ fetchCard id
-                , fetchCardVolunteers id
-                ]
-
-        PagePrizes ->
-            Cmd.none
-
-        PagePrize id ->
-            Cmd.none
-
-        PageUser id ->
-            Cmd.batch
-                [ fetchUser id
-                , fetchUserCards id
-                , fetchUserTakenCards id
-                ]
-            
+    in
+        updatePage model page
 
 
 -- VIEW
@@ -554,7 +127,12 @@ viewPage : Model -> Html Msg
 viewPage model =
     case model.page of
         PageHome ->
-            viewCards model model.cards
+            div []
+                [ if model.loggedIn
+                    then viewCreateCard model
+                    else div [] []
+                , viewCards model model.cards
+                ]
 
         PageNotFound ->
             -- TODO: сделать 404
@@ -585,6 +163,12 @@ viewPage model =
             , viewCards model model.userTakenCards
             ]
 
+        PageChatList ->
+            ChatPage.viewChatListPage model
+
+        PageChat id ->
+            ChatPage.viewChatPage model id
+            
 
 view : Model -> Html Msg
 view model =
@@ -592,18 +176,13 @@ view model =
     [ viewTopbar model
     , div
         [ id "page-container"
-        , style [ ("max-width", "560px"), ("margin", "0 auto") ] ]
+        , style [ ("max-width", "560px"), ("margin", "0 auto") ]
+        ]
         [ div
             [ id "content-cointainer"
-            , style
-                [ ("margin", "56px 8px 8px 8px")
-                ]
+            , style [ ("margin", "56px 8px 8px 8px") ]
             ]
-            [ if model.loggedIn
-                then viewCreateCard model
-                else div [] []
-            , viewPage model
-            ]
+            [ viewPage model ]
         ]
     ]
 
@@ -660,11 +239,34 @@ viewTopbar model =
                                     then HidePopup
                                     else ShowNotificationsPopup))
                         ]
-                        [ text "Уведомления"
+                        [ 
+                        --    img
+                        --    [ src "img/notification.svg"
+                        --    , width 24
+                        --    , height 24
+                        --    ]
+                        --    []
+                        --,
+                        text "Уведомления"
                         , if model.popup == NotificationsListPopup
                             then viewNotificationsListPopup model
                             else text ""
                         ]
+                    , li
+                        [ class "nav-item"
+                        , onClick (SetPage PageChatList)
+                        ]
+                        [
+                        --    img
+                        --    [ src "img/mail.svg"
+                        --    , width 24
+                        --    , height 24
+                        --    ]
+                        --    []
+                        --,
+                        text "Сообщения"
+                        ]
+                            
                     ]
                 , if model.loggedIn
                     then div
@@ -908,10 +510,6 @@ viewCardFull model card =
         ]
         else text ""
     ]
-
-viewMessage : IM -> Html msg
-viewMessage message =
-    div [] []
 
 
 viewCardHeader : Card -> Bool -> Html Msg

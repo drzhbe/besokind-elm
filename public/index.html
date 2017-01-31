@@ -55,6 +55,9 @@
     color: bisque;
     cursor: pointer;
   }
+  .nav-item:hover {
+    text-decoration: underline;
+  }
   .nav-item._disabled {
     color: #ffb494;
   }
@@ -105,7 +108,6 @@
   var dbCards = database.ref('cards');
   dbCards.off();
 
-  var subscribedToNewCards = false;
 
 
   function addCardToList(card) {
@@ -127,26 +129,6 @@
   function getCards(callback) {
     dbCards.limitToLast(12).on('child_added', addCardToList);
     dbCards.limitToLast(12).on('child_changed', updateCard);
-    // todo не работает такая фильтрация
-    // .orderByChild('assignedTo').equalTo('')
-    // dbCards.limitToLast(12).once('value', function(snapshot) {
-    //   var cards = [];
-    //   snapshot.forEach(function(card) {
-    //     var card = card.val();
-    //     card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
-    //     cards.push(card);
-    //   });
-    //   console.log('cards', typeof cards, cards);
-    //   app.ports.showCards.send(cards);
-
-    //   if (!subscribedToNewCards) {
-    //     subscribedToNewCards = true;
-    //     dbCards.limitToLast(12).on('child_added', addCardToList);
-    //     dbCards.limitToLast(12).on('child_changed', updateCard);
-    //   }
-    // }).catch(function(error) {
-    //   console.error('error', typeof error, error);
-    // });
   }
 
 
@@ -159,20 +141,32 @@
         .then(function() {
           // body...
         })
-        .catch(function(argument) {
+        .catch(function(error) {
           console.error('## error during [setting user presence]:', error);
         });
     }
+  }
+
+  function notificationAdded(notification) {
+    app.ports.notificationAdded.send(notification.val());
+  }
+
+  function notificationRemoved(notification) {
+    app.ports.notificationRemoved.send(notification.val());
   }
 
 
   auth.onAuthStateChanged(function(user) {
     if (user) {
       var userRef = database.ref('users/' + user.uid);
+      var userNotificationsRef = database.ref('user-notifications/' + user.uid)
+      var userRoomsRef = database.ref('user-rooms/' + user.uid)
 
       userRef.once('value', function(snapshot) {
         var userInDb = snapshot.val();
         if (userInDb) {
+          // TODO: rooms в юзере, а отдельно не приходят
+          console.log('userInDb', typeof userInDb, userInDb);
           setUserPresence(true);
           app.ports.authStateChanged.send(userInDb);
         } else {
@@ -206,18 +200,22 @@
       // -- user related subscribes
 
 
-      userRef.child('notifications')
-        .on('child_added', function(notification) {
-          app.ports.notificationAdded.send(notification.val());
-        })
-        .on('child_removed', function(notification) {
-          app.ports.notificationRemoved.send(notification.val());
+      userNotificationsRef.limitToLast(12).on('child_added', notificationAdded);
+      userNotificationsRef.on('child_removed', notificationRemoved);
+
+      userRoomsRef
+        .limitToLast(12)
+        .on('child_added', function(room) {
+          console.log('room.key', typeof room.key, room.key, room.val());
+          app.ports.roomAdded.send({ id: room.key, messages: [] });
         });
 
       userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
 
       database.ref('users-online').child(user.uid).onDisconnect().remove();
     } else {
+      userNotificationsRef.off();
+      userRoomsRef.off();
       app.ports.authStateChanged.send({
         uid: '',
         name: '',
@@ -249,7 +247,7 @@
   });
 
   app.ports.removeNotification.subscribe(function(userId, notificationId) {
-    database.ref('users/' + userId + '/notifications/' + notificationId).remove();
+    database.ref('user-notifications/' + userId + '/' + notificationId).remove();
   });
 
   app.ports.fetchStreamCards.subscribe(getCards);
@@ -349,8 +347,8 @@
     var updates = {};
     updates['card-volunteers/' + o.card.id + '/' + o.user.uid] = o.user;
     updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = o.card;
-    var authorNotificationId = database.ref('users/' + o.card.authorId + '/notifications').push().key;
-    updates['users/' + o.card.authorId + '/notifications/' + authorNotificationId] = {
+    var authorNotificationId = database.ref('user-notifications/' + o.card.authorId).push().key;
+    updates['user-notifications/' + o.card.authorId + '/' + authorNotificationId] = {
       id: authorNotificationId,
       name: 'userTookCard',
       read: false,
@@ -412,10 +410,10 @@
     var updates = {};
     updates['room-metadata/' + roomId + '/users/' + authorId] = true;
     updates['room-metadata/' + roomId + '/users/' + volunteerId] = true;
-    updates['users/' + authorId + '/rooms/' + roomId] = true;
-    updates['users/' + volunteerId + '/rooms/' + roomId] = true;
-    var volunteerNotificationId = database.ref('users/' + volunteerId + '/notifications').push().key;
-    updates['users/' + volunteerId + '/notifications/' + volunteerNotificationId] = {
+    updates['user-rooms/' + authorId + '/' + roomId] = true;
+    updates['user-rooms/' + volunteerId + '/' + roomId] = true;
+    var volunteerNotificationId = database.ref('user-notifications/' + volunteerId).push().key;
+    updates['user-notifications/' + volunteerId + '/' + volunteerNotificationId] = {
       id: volunteerNotificationId,
       name: 'userAssignedToCard',
       read: false,
@@ -466,7 +464,7 @@
   app.ports.markNotificationsAsRead.subscribe(function(o) {
     var updates = {};
     o.notificationIdList.forEach(function(notificationId) {
-      updates['users/' + o.userId + '/notifications/' + notificationId + '/read'] = true;
+      updates['user-notifications/' + o.userId + '/' + notificationId + '/read'] = true;
     });
     database.ref()
       .update(updates)
@@ -493,6 +491,29 @@
   });
   database.ref('users-online').on('child_removed', function(snapshot) {
     app.ports.onlineUserRemoved.send(snapshot.key);
+  });
+
+  app.ports.watchChat.subscribe(function(chatId) {
+    database.ref('room-messages/' + chatId).limitToLast(12).on('child_added', function(im) {
+        app.ports.messageAdded.send({chatId: chatId, im: im.val()});
+    });
+  });
+  app.ports.unwatchChat.subscribe(function(chatId) {
+    database.ref('room-messages/' + chatId).off();
+  });
+
+  app.ports.sendMessage.subscribe(function(chatMessage) {
+    var roomRef = database.ref('room-messages/' + chatMessage.chatId);
+    var key = roomRef.push().key;
+    var updates = {};
+    var im = chatMessage.im;
+    im.id = key;
+    im.date = firebase.database.ServerValue.TIMESTAMP;
+    updates[key] = im;
+    roomRef.update(updates)
+      .catch(function(error) {
+        console.error('## error during [sending message]:', chatMessage, error);
+      });
   });
 </script>
 </html>
