@@ -207,7 +207,7 @@
         .limitToLast(12)
         .on('child_added', function(room) {
           console.log('room.key', typeof room.key, room.key, room.val());
-          app.ports.roomAdded.send({ id: room.key, messages: [] });
+          app.ports.roomAdded.send({ id: room.key, users: [], messages: [] });
         });
 
       userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
@@ -299,12 +299,22 @@
       });
   });
 
-  app.ports.fetchUser.subscribe(function(id) {
-    database.ref('users/' + id).once('value', function(snapshot) {
+  /*
+    port fetchUser : { id: String, purpose: String } -> Cmd msg
+      o.purpose "openUserPage" | "openChatPage"
+  */
+  app.ports.fetchUser.subscribe(function(o) {
+    database.ref('users/' + o.id).once('value', function(snapshot) {
       var userInDb = snapshot.val();
 
       if (userInDb) {
-        app.ports.userFetched.send(userInDb);
+        switch (o.purpose) {
+          case 'openUserPage':
+            app.ports.activeUserFetched.send(userInDb);
+            break;
+          case 'openChatPage':
+            app.ports.userFetched.send(userInDb);
+        }
       }
     });
   });
@@ -513,6 +523,18 @@
     roomRef.update(updates)
       .catch(function(error) {
         console.error('## error during [sending message]:', chatMessage, error);
+      });
+  });
+
+  app.ports.fetchRoomMetadata.subscribe(function(roomId) {
+    database.ref('room-metadata/' + roomId)
+      .once('value', function(snapshot) {
+        var data = snapshot.val();
+        var roomMetadata = {
+          id: roomId,
+          users: Object.keys(data.users)
+        };
+        app.ports.roomMetadataFetched.send(roomMetadata);
       });
   });
 </script>

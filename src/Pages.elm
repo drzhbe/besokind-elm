@@ -1,6 +1,8 @@
 module Pages exposing (toHash, defaultPage, getPageByLocation, updatePage)
 import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import Navigation
+import Task
+import Time exposing (Time)
 
 import Types exposing (..)
 import Data exposing (fetchDataForPage)
@@ -37,11 +39,16 @@ updatePage model page =
             PageChat id ->
                 { model
                 | page = page
-                , activeRoom = (Room id []) }
+                , activeRoomId = id }
 
             _ -> { model | page = page }
     in
-        ( newModel, fetchDataForPage page )
+        ( newModel
+        , Cmd.batch
+            [ fetchDataForPage page
+            , Task.perform NewTime Time.now
+            ]
+        )
 
 
 toHash : Page -> String

@@ -15,6 +15,7 @@ import Update exposing (update)
 import Pages exposing (toHash, defaultPage, updatePage)
 import Data exposing (fetchDataForPage)
 import ChatPage
+import Style exposing (..)
 
 
 main =
@@ -55,73 +56,35 @@ init location =
     let
         page = defaultPage location
         model =
-            { page = page
+            { time = 0
+            , page = page
             , loggedIn = False
             , title = ""
             , cardText = ""
             , cardInputFocus = False
+            , messageText = ""
+            , messageInputFocus = False
             , place = ""
-            , user = (User "" "" "" "" 0 False)
+            , user = emptyUser
             , cards = []
             , userCards = []
             , activeCard = (Card "" "" "" "" 0 "" 0 "" "" "" "")
-            , activeRoom = (Room "" [])
+            , activeRoomId = ""
             , activeCardVolunteers = []
-            , activeUser = (User "" "" "" "" 0 False)
+            , activeUser = emptyUser
             , userTakenCards = []
             , karma = ("", 0)
             , popup = NoPopup
             , notifications = Dict.empty
-            , rooms = []
             , usersOnline = Set.empty
+            , users = Dict.empty
+            , rooms = Dict.empty
             }
     in
         updatePage model page
 
 
 -- VIEW
-
--- coral
-brandColor : String
-brandColor = "#f2836b"
-brandLighterColor : String
-brandLighterColor = "#f2c3ab"
-brandLightestColor : String
-brandLightestColor = "#ffe3cb"
--- almbost black
-darkestColor : String
-darkestColor = "#333"
--- lightest gray
-grayColor : String
-grayColor = "#999"
--- lightest
-grayLightestColor : String
-grayLightestColor = "#f9f9f9"
--- blue
-linkColor : String
-linkColor = "#1da1f2"
-
-buttonStyle : List (String, String)
-buttonStyle =
-    [ ("cursor", "pointer")
-    , ("padding", "4px 8px")
-    , ("color", "white")
-    , ("border-radius", "4px")
-    ]
-deleteButtonStyle : List (String, String)
-deleteButtonStyle =
-    [ ("background", darkestColor)
-    , ("position", "absolute")
-    , ("right", "0")
-    , ("top", "-4px")
-    ]
-takeButtonStyle : List (String, String)
-takeButtonStyle =
-    [ ("background", brandColor)
-    , ("display", "inline")
-    , ("margin-left", "8px")
-    ]
-
 
 viewPage : Model -> Html Msg
 viewPage model =

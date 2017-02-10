@@ -29,7 +29,7 @@ fetchDataForPage page =
 
         PageUser id ->
             Cmd.batch
-                [ fetchUser id
+                [ fetchUser { id = id, purpose = "openUserPage" }
                 , fetchUserCards id
                 , fetchUserTakenCards id
                 ]
@@ -38,4 +38,7 @@ fetchDataForPage page =
             Cmd.none
 
         PageChat id ->
-            watchChat id
+            Cmd.batch
+                [ fetchRoomMetadata id
+                , watchChat id
+                ]

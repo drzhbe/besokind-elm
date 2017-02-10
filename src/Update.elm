@@ -1,4 +1,6 @@
 module Update exposing (update)
+import Task
+import Time exposing (Time)
 import Set
 import Dict
 import Navigation
@@ -13,6 +15,9 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
+
+        NewTime time ->
+            ( { model | time = time }, Cmd.none )
 
         HandleUrlChange location ->
             updatePage model (getPageByLocation location)
@@ -31,6 +36,19 @@ update msg model =
                     else persistCardText model.cardText
             in
                 ( { model | cardInputFocus = focused }, command )
+
+        SetMessageText text ->
+            ( { model | messageText = text }, Cmd.none )
+
+        MessageInputFocus focused ->
+            let
+                command =
+                    if focused
+                    then Cmd.none
+                    else Cmd.none
+                    --else persistCardText model.cardText
+            in
+                ( { model | messageInputFocus = focused }, command )
 
         Login ->
             ( model, login "google" )
@@ -90,6 +108,9 @@ update msg model =
 
         ShowVolunteers users ->
             ( { model | activeCardVolunteers = users }, Cmd.none )
+
+        UserFetched user ->
+            ( { model | users = Dict.insert user.uid user model.users }, Cmd.none )
 
         SetActiveUser user ->
             ( { model | activeUser = user }, Cmd.none )
@@ -155,34 +176,57 @@ update msg model =
         --    , markNotificationsAsRead { userId = model.user.uid, notificationIdList = notificationIdList } )
 
         RoomAdded room ->
-            ( { model | rooms = room :: model.rooms }, Cmd.none )
+            let
+                rooms =
+                    if Dict.member room.id model.rooms
+                    then model.rooms
+                    else Dict.insert room.id room model.rooms
+            in
+                ( { model | rooms = rooms }, Cmd.none )
 
         AddOnlineUser userId ->
             ( { model
-                | usersOnline = Set.insert (Debug.log "userId came online" userId) model.usersOnline }
+                | usersOnline = Set.insert userId model.usersOnline }
             , Cmd.none )
 
         RemoveOnlineUser userId ->
             ( { model
-                | usersOnline = Set.remove (Debug.log "userId went offline" userId) model.usersOnline }
+                | usersOnline = Set.remove userId model.usersOnline }
             , Cmd.none )
 
         ShowRoom room ->
-            ( { model | activeRoom = room }, Cmd.none )
+            ( { model | activeRoomId = room.id }, Cmd.none )
 
         MessageAdded chatMessage ->
             let
-                room = model.activeRoom
-                newActiveRoom =
-                    if room.id == chatMessage.chatId 
-                    then { room | messages = chatMessage.im :: room.messages }
-                    else room
+                room = case Dict.get chatMessage.chatId model.rooms of
+                    Just r -> { r | messages = chatMessage.im :: r.messages }
+                    Nothing -> Room chatMessage.chatId [] [chatMessage.im]
             in
-                ( { model | activeRoom = newActiveRoom }, Cmd.none )
+                ( { model | rooms = Dict.insert room.id room model.rooms }, Cmd.none )
 
         SendMessage chatMessage ->
-            ( model, sendMessage chatMessage )
+            ( { model | messageText = "" }, sendMessage chatMessage )
 
+        RoomMetadataFetched roomMetadata ->
+            let
+                newRooms = case Dict.get roomMetadata.id model.rooms of
+                    Just room -> Dict.insert roomMetadata.id { room | users = roomMetadata.users } model.rooms
+                    Nothing -> model.rooms
+                cmd = case Dict.get roomMetadata.id newRooms of
+                    Just room ->
+                        Cmd.batch
+                            (List.filterMap (fetchMissingUser model.users) room.users)
+                    Nothing -> Cmd.none
+            in
+                ( { model | rooms = newRooms }, cmd )
+
+
+fetchMissingUser : (Dict.Dict String User) -> String -> Maybe (Cmd Msg)
+fetchMissingUser users userId =
+    if Dict.member userId users
+    then Nothing
+    else Just (fetchUser { id = userId, purpose = "openChatPage" })
 
 
 updateNotificationAsRead : String -> Notification -> Notification

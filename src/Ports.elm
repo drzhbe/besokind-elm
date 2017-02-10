@@ -11,9 +11,10 @@ port fetchCard : String -> Cmd msg
 port fetchCardVolunteers : String -> Cmd msg
 port fetchStreamCards : String -> Cmd msg
 port fetchUserCards : String -> Cmd msg
-port fetchUser : String -> Cmd msg
+-- purpose : "openUserPage" | "openChatPage"
+port fetchUser : { id: String, purpose: String } -> Cmd msg
 port fetchUserTakenCards : String -> Cmd msg
-port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
+port updateKarma : { authorId : String, cardId : String, karma : Int } -> Cmd msg
 port takeCard : { user : User, card : Card } -> Cmd msg
 port removeCard : Card -> Cmd msg
 port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
@@ -23,6 +24,7 @@ port markNotificationsAsRead : { userId : String, notificationIdList : List Stri
 port watchChat : String -> Cmd msg
 port unwatchChat : String -> Cmd msg
 port sendMessage : ChatMessage -> Cmd msg
+port fetchRoomMetadata : String -> Cmd msg
 
 -- SUBSCRIPTIONS
 
@@ -33,6 +35,7 @@ port addCardToList : (Card -> msg) -> Sub msg
 port updateCard : (Card -> msg) -> Sub msg
 port cardFetched : (Card -> msg) -> Sub msg
 port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
+port activeUserFetched : (User -> msg) -> Sub msg
 port userFetched : (User -> msg) -> Sub msg
 port userTakenCardsFetched : ((List Card) -> msg) -> Sub msg
 port cardRemoved : (Card -> msg) -> Sub msg
@@ -43,6 +46,7 @@ port roomAdded : (Room -> msg) -> Sub msg
 port onlineUserAdded : (String -> msg) -> Sub msg
 port onlineUserRemoved : (String -> msg) -> Sub msg
 port messageAdded : (ChatMessage -> msg) -> Sub msg
+port roomMetadataFetched : (RoomMetadata -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -54,7 +58,8 @@ subscriptions model =
         , updateCard UpdateCard
         , cardFetched ShowCard
         , cardVolunteersFetched ShowVolunteers
-        , userFetched SetActiveUser
+        , activeUserFetched SetActiveUser
+        , userFetched UserFetched
         , userTakenCardsFetched ShowUserTakenCards
         , cardRemoved HandleRemoveCard
         , cardTextFetched SetCardText
@@ -64,4 +69,5 @@ subscriptions model =
         , onlineUserAdded AddOnlineUser
         , onlineUserRemoved RemoveOnlineUser
         , messageAdded MessageAdded
+        , roomMetadataFetched RoomMetadataFetched
         ]

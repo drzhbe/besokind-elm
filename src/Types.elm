@@ -1,4 +1,5 @@
 module Types exposing (..)
+import Time exposing (Time)
 import Set
 import Dict
 import Navigation
@@ -16,25 +17,29 @@ type Page
 
 
 type alias Model =
-    { page : Page
+    { time : Time
+    , page : Page
     , loggedIn : Bool
     , title : String
     , cardText : String
     , cardInputFocus : Bool
+    , messageText : String
+    , messageInputFocus : Bool
     , place : String
     , user : User
     , cards : (List Card)
     , userCards : (List Card)
     , activeCard : Card
-    , activeRoom : Room
+    , activeRoomId : String
     , activeCardVolunteers : (List User)
     , activeUser : User
     , userTakenCards : (List Card)
     , karma : (String, Int)
     , popup : Popup
     , notifications : (Dict.Dict String Notification)
-    , rooms : (List Room)
     , usersOnline : (Set.Set String)
+    , users : (Dict.Dict String User)
+    , rooms : (Dict.Dict String Room)
     }
 
 
@@ -46,6 +51,10 @@ type alias User =
     , karma: Int
     , moderator : Bool
     }
+
+emptyUser : User
+emptyUser =
+    User "" "" "" "" 0 False
 
 
 type alias Card =
@@ -79,7 +88,14 @@ type alias ChatMessage =
 
 type alias Room =
     { id : String
+    , users : (List String)
     , messages : (List IM)
+    }
+
+
+type alias RoomMetadata =
+    { id : String
+    , users : (List String)
     }
 
 
@@ -102,10 +118,13 @@ type Popup
 
 type Msg
     = NoOp
+    | NewTime Time
     | HandleUrlChange Navigation.Location
     | SetPage Page
     | SetCardText String
     | CardInputFocus Bool
+    | SetMessageText String
+    | MessageInputFocus Bool
     | Login
     | Logout
     | SetUser User
@@ -116,6 +135,7 @@ type Msg
     | UpdateCard Card
     | ShowCard Card
     | SetActiveUser User
+    | UserFetched User
     | ShowUserTakenCards (List Card)
     | UpdateKarma String String String
     | TakeCard User Card
@@ -135,3 +155,4 @@ type Msg
     | ShowRoom Room
     | MessageAdded ChatMessage
     | SendMessage ChatMessage
+    | RoomMetadataFetched RoomMetadata
