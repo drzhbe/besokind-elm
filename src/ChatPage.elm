@@ -3,7 +3,8 @@ import Html exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Html.Attributes exposing (..)
 import Dict
-import Date exposing (fromTime, year, month, day, hour, minute)
+import Array
+import Date exposing (fromTime, year, month, day, hour, minute, dayOfWeek, Month, Day)
 import Time
 
 import Types exposing (..)
@@ -44,11 +45,11 @@ viewChat model chatId =
     let
         messages = case Dict.get chatId model.rooms of
             Just room -> room.messages
-            Nothing -> []
+            Nothing -> Array.empty
     in
         -- bottom margin would be from the last message
         div [ style [ ("margin", "10px 10px 0 10px") ] ]
-            [ ul [] (List.indexedMap (viewMessage model messages) messages)
+            [ ul [] (Array.toList (Array.indexedMap (viewMessage model messages) messages))
             ]
 
 fmtTime : Int -> String
@@ -57,7 +58,44 @@ fmtTime timePart =
     then "0" ++ toString timePart
     else toString timePart
 
-viewMessage : Model -> List IM -> Int -> IM -> Html Msg
+trMonth : Date.Month -> String
+trMonth month =
+    case month of
+        Date.Jan -> "января"
+        Date.Feb -> "февраля"
+        Date.Mar -> "марта"
+        Date.Apr -> "апреля"
+        Date.May -> "мая"
+        Date.Jun -> "июня"
+        Date.Jul -> "июля"
+        Date.Aug -> "августа"
+        Date.Sep -> "сентября"
+        Date.Oct -> "октября"
+        Date.Nov -> "ноября"
+        Date.Dec -> "декабря"
+
+trDayOfWeek : Date.Day -> String
+trDayOfWeek day =
+    case day of
+        Date.Mon -> "Понедельник"
+        Date.Tue -> "Вторник"
+        Date.Wed -> "Среда"
+        Date.Thu -> "Четверг"
+        Date.Fri -> "Пятница"
+        Date.Sat -> "Суббота"
+        Date.Sun -> "Воскресенье"
+
+dateToString : Date.Date -> String
+dateToString date =
+    trDayOfWeek (dayOfWeek date)
+    ++ ", "
+    ++ toString (day date)
+    ++ " "
+    ++ trMonth (month date)
+    ++ ", "
+    ++ toString (year date)
+
+viewMessage : Model -> Array.Array IM -> Int -> IM -> Html Msg
 viewMessage model messages idx im =
     let
         user = case Dict.get im.userId model.users of
@@ -66,37 +104,75 @@ viewMessage model messages idx im =
         -- TODO (salnikov): dont paint user avatar if prev msg was his
         --prevIm = List
         date = fromTime (toFloat im.date)
-        dateNow = fromTime model.time
-        today =
-            year date == year dateNow
-            && month date == month dateNow
-            && day date == day dateNow
         time = (fmtTime (hour date)) ++ ":" ++ (fmtTime (minute date))
+
+        prevMsgMaybe = Array.get (idx-1) messages
+        dateRepresentation = case prevMsgMaybe of
+            Just prevMsg ->
+                let
+                    prevDate = fromTime (toFloat prevMsg.date)
+                in
+                    if year date == year prevDate
+                    && month date == month prevDate
+                    && day date == day prevDate
+                    then ""
+                    else dateToString date
+            Nothing -> dateToString date
+        avatar = case prevMsgMaybe of
+            Just prevMsg ->
+                if im.userId /= prevMsg.userId || not (String.isEmpty dateRepresentation)
+                then user.photoURL
+                else ""
+            Nothing -> user.photoURL
     in
         li [ style [ ("margin-bottom", "10px") ] ]
-            [ a [ href (toHash (PageUser user.uid)) ]
-                [ img
-                    [ src user.photoURL
-                    -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
-                    , width 34, height 34
-                    , style [ ("float", "left"), ("border-radius", "4px") ]
-                    ] []
-                ]
-            , span
-                [ style
-                    --[ ("line-height", "25px")
-                    [ ("margin-left", "8px")
-                    , ("color", darkestColor)
-                    , ("font-weight", "500")
+            [ if String.isEmpty dateRepresentation
+                then text ""
+                else div
+                    [ style
+                        [ ("color", grayColor)
+                        , ("margin-bottom", "16px")
+                        , ("padding-top", "6px")
+                        , ("text-align", "center")
+                        ]
                     ]
+                    [ text dateRepresentation ]
+            , div []
+                [ if String.isEmpty avatar
+                    then text ""
+                    else
+                        a [ href (toHash (PageUser user.uid)) ]
+                            [ img
+                                [ src user.photoURL
+                                -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
+                                , width 34, height 34
+                                , style [ ("float", "left"), ("border-radius", "4px") ]
+                                ] []
+                            ]
+                , if String.isEmpty avatar
+                    then text ""
+                    else
+                        span
+                            [ style
+                                --[ ("line-height", "25px")
+                                [ ("margin-left", "8px")
+                                , ("color", darkestColor)
+                                , ("font-weight", "500")
+                                ]
+                            ]
+                            [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
+                , span
+                    [ style
+                        [ ("color", grayColor)
+                        , ("font-size", "12px")
+                        , ("float", "right")
+                        ]
+                    ]
+                    [ text time ]
+                , div
+                    [ style [ ("margin", "2px 42px 0 42px") ] ]
+                    [ text im.text ]
                 ]
-                [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
-            , span
-                [ style [ ("color", grayColor), ("margin-left", "8px") ] ]
-                [ text time ]
-            , div
-                [ style [ ("margin", "2px 0 0 42px") ] ]
-                [ text im.text ]
             ]
 
 viewChatInput : Model -> String -> Html Msg

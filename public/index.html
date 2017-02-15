@@ -503,7 +503,13 @@
     app.ports.onlineUserRemoved.send(snapshot.key);
   });
 
+  var watchingChatId;
   app.ports.watchChat.subscribe(function(chatId) {
+    if (watchingChatId && watchingChatId !== chatId) {
+      database.ref('room-messages/' + watchingChatId).off();
+    }
+    // TODO (salnikov): даже после unwatch все равно надо фильтровать от дубликатов
+    watchingChatId = chatId;
     database.ref('room-messages/' + chatId).limitToLast(12).on('child_added', function(im) {
         app.ports.messageAdded.send({chatId: chatId, im: im.val()});
     });

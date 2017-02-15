@@ -2,6 +2,7 @@ module Types exposing (..)
 import Time exposing (Time)
 import Set
 import Dict
+import Array
 import Navigation
 
 type Page
@@ -89,7 +90,7 @@ type alias ChatMessage =
 type alias Room =
     { id : String
     , users : (List String)
-    , messages : (List IM)
+    , messages : (Array.Array IM)
     }
 
 

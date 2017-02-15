@@ -3,6 +3,7 @@ import Task
 import Time exposing (Time)
 import Set
 import Dict
+import Array
 import Navigation
 
 import Types exposing (..)
@@ -200,8 +201,8 @@ update msg model =
         MessageAdded chatMessage ->
             let
                 room = case Dict.get chatMessage.chatId model.rooms of
-                    Just r -> { r | messages = chatMessage.im :: r.messages }
-                    Nothing -> Room chatMessage.chatId [] [chatMessage.im]
+                    Just r -> { r | messages = Array.push chatMessage.im r.messages }
+                    Nothing -> Room chatMessage.chatId [] (Array.repeat 1 chatMessage.im)
             in
                 ( { model | rooms = Dict.insert room.id room model.rooms }, Cmd.none )
 
