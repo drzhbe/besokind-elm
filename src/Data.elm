@@ -1,10 +1,13 @@
 module Data exposing (fetchDataForPage)
 
+import Dict
+import Array
+
 import Types exposing (..)
 import Ports exposing (..)
 
-fetchDataForPage : Page -> Cmd Msg
-fetchDataForPage page =
+fetchDataForPage : Model -> Page -> Cmd Msg
+fetchDataForPage model page =
     case page of
         PageHome ->
             fetchStreamCards "TODO port should recieve at least 1 arg :/"
@@ -35,10 +38,29 @@ fetchDataForPage page =
                 ]
 
         PageChatList ->
-            Cmd.none
+            let
+                chatIdList = Dict.keys model.rooms
+            in
+                Cmd.batch
+                    <| List.map (\id -> fetchRoomMetadata id) chatIdList
+                    --++ List.map (\id -> fetchLastChatMessage id) chatIdList
 
         PageChat id ->
-            Cmd.batch
-                [ fetchRoomMetadata id
-                , watchChat id
-                ]
+            let
+                room =
+                    case Dict.get id model.rooms of
+                        Nothing -> emptyRoom
+                        Just r -> r
+                lastMessageId =
+                    case Array.get 0 room.messages of
+                        Nothing -> ""
+                        Just message -> message.id
+                needToFetch = Array.length room.messages < 12
+            in
+                if needToFetch
+                then
+                    Cmd.batch
+                        [ fetchRoomMetadata id
+                        , fetchChatMessages { chatId = id, lastMessageId = lastMessageId }
+                        ]
+                else fetchRoomMetadata id

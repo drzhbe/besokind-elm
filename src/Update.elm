@@ -39,7 +39,31 @@ update msg model =
                 ( { model | cardInputFocus = focused }, command )
 
         SetMessageText text ->
-            ( { model | messageText = text }, Cmd.none )
+            let
+                rowsCount = List.length (String.split "\n" text)
+                -- 20 lineheight
+                -- 3 magic additional height when wrap textarea
+                -- 12 padding from top and bottom 6
+                -- 20 padding from top and bottom 10
+                -- 2 border from top and bottom 1
+                inputHeight = rowsCount * 20 + 3 + 34
+
+                newModel =
+                    if inputHeight /= model.messageInputHeight
+                    then { model | messageText = text, messageInputHeight = inputHeight }
+                    else { model | messageText = text }
+
+                room =
+                    case Dict.get model.activeRoomId model.rooms of
+                    Nothing -> emptyRoom
+                    Just r -> r
+
+                cmd =
+                    if inputHeight /= model.messageInputHeight
+                    then scrollElementToEnd { elementId = "chat-history", count = Array.length room.messages }
+                    else Cmd.none
+            in
+                ( newModel, cmd )
 
         MessageInputFocus focused ->
             let
@@ -182,8 +206,15 @@ update msg model =
                     if Dict.member room.id model.rooms
                     then model.rooms
                     else Dict.insert room.id room model.rooms
+
+                newModel = { model | rooms = rooms }
+
+                cmd =
+                    if model.page == PageChatList
+                    then fetchDataForPage newModel model.page
+                    else Cmd.none
             in
-                ( { model | rooms = rooms }, Cmd.none )
+                ( newModel, cmd )
 
         AddOnlineUser userId ->
             ( { model
@@ -201,10 +232,44 @@ update msg model =
         MessageAdded chatMessage ->
             let
                 room = case Dict.get chatMessage.chatId model.rooms of
-                    Just r -> { r | messages = Array.push chatMessage.im r.messages }
                     Nothing -> Room chatMessage.chatId [] (Array.repeat 1 chatMessage.im)
+                    Just r ->
+                        case Array.get ((Array.length r.messages) - 1) r.messages of
+                            Nothing ->
+                                { r | messages = Array.push chatMessage.im r.messages }
+                            -- filter the same last message
+                            Just msg ->
+                                if msg.id == chatMessage.im.id
+                                then r
+                                else { r | messages = Array.push chatMessage.im r.messages }
             in
                 ( { model | rooms = Dict.insert room.id room model.rooms }, Cmd.none )
+
+        MessagePackAdded chatMessagePack ->
+            let
+                room = case Dict.get chatMessagePack.chatId model.rooms of
+                    Just r -> { r | messages = Array.append (Array.fromList chatMessagePack.messages) r.messages }
+                    Nothing -> Room chatMessagePack.chatId [] (Array.fromList chatMessagePack.messages)
+                firstMessage = case Array.get 0 room.messages of
+                    Nothing -> emptyIM
+                    Just im -> im
+                cmdList =
+                    [ enableChatHistoryInfiniteScroll
+                        { elementId = "chat-history"
+                        , chatId = room.id
+                        , lastMessageId = firstMessage.id
+                        }
+                    ]
+                scrollCmd =
+                    if Array.length room.messages <= 12
+                    then scrollElementToEnd
+                        { elementId = "chat-history"
+                        , count = Array.length room.messages
+                        }
+                    else Cmd.none
+            in
+                ( { model | rooms = Dict.insert room.id room model.rooms }
+                , Cmd.batch (scrollCmd :: cmdList) )
 
         SendMessage chatMessage ->
             ( { model | messageText = "" }, sendMessage chatMessage )
@@ -221,6 +286,15 @@ update msg model =
                     Nothing -> Cmd.none
             in
                 ( { model | rooms = newRooms }, cmd )
+
+        WindowResized newHeight ->
+            let
+                newModel =
+                    if model.appHeight == newHeight
+                    then model
+                    else { model | appHeight = newHeight }
+            in
+                ( newModel, Cmd.none )
 
 
 fetchMissingUser : (Dict.Dict String User) -> String -> Maybe (Cmd Msg)

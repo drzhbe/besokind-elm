@@ -61,6 +61,10 @@
   .nav-item._disabled {
     color: #ffb494;
   }
+  /*.nav-item._disabled:hover {
+    text-decoration: none;
+    cursor: default;
+  }*/
   .notification-list {
     cursor: auto;
   }
@@ -90,7 +94,9 @@
 
 <div id="main"></div>
 
-<script src="https://www.gstatic.com/firebasejs/3.4.1/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-database.js"></script>
 <script src='date-fns-distance.js'></script>
 <script src="app.js"></script>
 <script>
@@ -157,78 +163,73 @@
 
 
   auth.onAuthStateChanged(function(user) {
-    if (user) {
-      var userRef = database.ref('users/' + user.uid);
-      var userNotificationsRef = database.ref('user-notifications/' + user.uid)
-      var userRoomsRef = database.ref('user-rooms/' + user.uid)
+    if (!user) return;
 
-      userRef.once('value', function(snapshot) {
-        var userInDb = snapshot.val();
-        if (userInDb) {
-          // TODO: rooms в юзере, а отдельно не приходят
-          console.log('userInDb', typeof userInDb, userInDb);
-          setUserPresence(true);
-          app.ports.authStateChanged.send(userInDb);
-        } else {
-          // authorized for the first time -> create user
-          var updates = {};
-          var newUser = {
-            uid: user.uid,
-            name: user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-            karma: 0,
-            moderator: false
-          };
-          updates['users/' + user.uid] = newUser;
+    var userRef = database.ref('users/' + user.uid);
+    var userNotificationsRef = database.ref('user-notifications/' + user.uid)
+    var userRoomsRef = database.ref('user-rooms/' + user.uid)
 
-          database.ref()
-            .update(updates)
-            .then(function() {
-              setUserPresence(true);
-              app.ports.authStateChanged.send(newUser);
-            })
-            .catch(function(error) {
-              console.error('## error during [creating new user]:', error);
-            });
-        }
-      }).catch(function(error) {
-        console.error('## error during [getting user info]:', error);
+    userRef.once('value', function(snapshot) {
+      var userInDb = snapshot.val();
+      if (userInDb) {
+        setUserPresence(true);
+        app.ports.authStateChanged.send(userInDb);
+      } else {
+        // authorized for the first time -> create user
+        var updates = {};
+        var newUser = {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          karma: 0,
+          moderator: false
+        };
+        updates['users/' + user.uid] = newUser;
+
+        database.ref()
+          .update(updates)
+          .then(function() {
+            setUserPresence(true);
+            app.ports.authStateChanged.send(newUser);
+          })
+          .catch(function(error) {
+            console.error('## error during [creating new user]:', error);
+          });
+      }
+    }).catch(function(error) {
+      console.error('## error during [getting user info]:', error);
+    });
+
+
+    // -- user related subscribes
+
+
+    userNotificationsRef.limitToLast(12).on('child_added', notificationAdded);
+    userNotificationsRef.on('child_removed', notificationRemoved);
+
+    userRoomsRef
+      .limitToLast(12)
+      .on('child_added', function(room) {
+        app.ports.roomAdded.send({ id: room.key, users: [], messages: [] });
+
+        database.ref('room-messages/' + room.key)
+          .limitToLast(1)
+          .on('child_added', function(im) {
+            app.ports.messageAdded.send({chatId: room.key, im: im.val()});
+          });
       });
 
+    userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
 
-      // -- user related subscribes
-
-
-      userNotificationsRef.limitToLast(12).on('child_added', notificationAdded);
-      userNotificationsRef.on('child_removed', notificationRemoved);
-
-      userRoomsRef
-        .limitToLast(12)
-        .on('child_added', function(room) {
-          console.log('room.key', typeof room.key, room.key, room.val());
-          app.ports.roomAdded.send({ id: room.key, users: [], messages: [] });
-        });
-
-      userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
-
-      database.ref('users-online').child(user.uid).onDisconnect().remove();
-    } else {
-      userNotificationsRef.off();
-      userRoomsRef.off();
-      app.ports.authStateChanged.send({
-        uid: '',
-        name: '',
-        email: '',
-        photoURL: '',
-        karma: 0,
-        moderator: false
-      });
-    }
+    database.ref('users-online').child(user.uid).onDisconnect().remove();
   });
 
 
   var app = Elm.Main.fullscreen();
+  app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
+
+
   app.ports.login.subscribe(function(authType) {
     switch (authType) {
       case 'google':
@@ -239,11 +240,23 @@
 
   app.ports.logout.subscribe(function() {
     if (auth.currentUser) {
+      var uid = auth.currentUser.uid;
       setUserPresence(false);
-      database.ref('users/' + auth.currentUser.uid + '/lastOnline')
-        .set(firebase.database.ServerValue.TIMESTAMP);
+      database.ref('users/' + uid + '/lastOnline').set(firebase.database.ServerValue.TIMESTAMP);
+      database.ref('user-notifications/' + uid).off();
+      database.ref('user-rooms/' + uid).off();
     }
+
     auth.signOut();
+
+    app.ports.authStateChanged.send({
+      uid: '',
+      name: '',
+      email: '',
+      photoURL: '',
+      karma: 0,
+      moderator: false
+    });
   });
 
   app.ports.removeNotification.subscribe(function(userId, notificationId) {
@@ -503,20 +516,56 @@
     app.ports.onlineUserRemoved.send(snapshot.key);
   });
 
-  var watchingChatId;
-  app.ports.watchChat.subscribe(function(chatId) {
-    if (watchingChatId && watchingChatId !== chatId) {
-      database.ref('room-messages/' + watchingChatId).off();
+  // CHAT
+
+  app.ports.fetchChatMessages.subscribe(fetchChatMessages);
+
+  // port fetchChatMessages : { chatId : String, lastMessageId : String } -> Cmd msg
+  function fetchChatMessages(o) {
+    var chatId = o.chatId;
+    var lastMessageId = o.lastMessageId;
+    var pageSize = 12;
+    var ref = database
+      .ref('room-messages/' + chatId)
+      .limitToLast(pageSize);
+    var needToRemoveLast = false;
+
+    if (lastMessageId) {
+      needToRemoveLast = true;
+      ref = ref.endAt(null, lastMessageId)
     }
-    // TODO (salnikov): даже после unwatch все равно надо фильтровать от дубликатов
-    watchingChatId = chatId;
-    database.ref('room-messages/' + chatId).limitToLast(12).on('child_added', function(im) {
-        app.ports.messageAdded.send({chatId: chatId, im: im.val()});
+
+    ref.once('value', function(snap) {
+      var messages = [];
+
+      snap.forEach(function(im) {
+        messages.push(im.val());
+      });
+
+      if (needToRemoveLast) {
+        // убираем последнее, т.к. использовался lastMessageId и это сообщение у нас уже есть
+        messages.pop();
+      }
+
+      app.ports.chatMessagesFetched.send({chatId: chatId, messages: messages});
     });
-  });
-  app.ports.unwatchChat.subscribe(function(chatId) {
-    database.ref('room-messages/' + chatId).off();
-  });
+  }
+
+
+  // var watchingChatId;
+  // app.ports.watchChatMessages.subscribe(function(chatId) {
+  //   if (watchingChatId && watchingChatId !== chatId) {
+  //     database.ref('room-messages/' + watchingChatId).off();
+  //   }
+  //   // TODO (salnikov): даже после unwatch все равно надо фильтровать от дубликатов
+  //   watchingChatId = chatId;
+  //   database.ref('room-messages/' + chatId).limitToLast(12).on('child_added', function(im) {
+  //     app.ports.messageAdded.send({chatId: chatId, im: im.val()});
+  //   });
+  // });
+  // app.ports.unwatchChatMessages.subscribe(function(chatId) {
+  //   database.ref('room-messages/' + chatId).off();
+  // });
 
   app.ports.sendMessage.subscribe(function(chatMessage) {
     var roomRef = database.ref('room-messages/' + chatMessage.chatId);
@@ -543,5 +592,79 @@
         app.ports.roomMetadataFetched.send(roomMetadata);
       });
   });
+
+  // id of DOMNode; count of children should be when scroll to fire
+  // port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
+  app.ports.scrollElementToEnd.subscribe(function(o) {
+    // все действа с домом делать нужно после отрисовки
+    requestAnimationFrame(function() {
+      var el = document.getElementById(o.elementId);
+      if (el) {
+        hasEnoughChildren(el, o.count, function() {
+          el.scrollTop = el.scrollHeight;
+        });
+      }
+    });
+  });
+
+  window.onresize = function() {
+    if (app === undefined) return;
+    app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
+  };
+
+  // port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
+  app.ports.enableChatHistoryInfiniteScroll.subscribe(function(o) {
+    requestAnimationFrame(function() {
+      var el = document.getElementById(o.elementId);
+      if (el) {
+        hasEnoughChildren(el, 12, function() {
+          // timeout нужен для того, чтобы подписаться после того, как мы доскролим до конца
+          setTimeout(function() {
+            var thirdChild = el.children[2];
+            if (thirdChild) {
+
+              function onScroll() {
+                if (isElementInViewport(thirdChild)) {
+                  fetchChatMessages(o);
+                  el.removeEventListener('scroll', onScroll);
+                }
+              }
+
+              el.addEventListener('scroll', onScroll);
+            }
+          }, 500)
+        });
+      }
+    });
+  });
+
+  function hasEnoughChildren(el, childCount, callback) {
+    function onChildAdded() {
+      if (el.children.length === childCount) {
+        callback();
+        el.removeEventListener('DOMNodeInserted', onChildAdded);
+      }
+    }
+
+    // детей столько же, случай при переносе строки в инпуте, надо чтоб высота инпута обновилась
+    if (el.children.length === childCount) {
+        el.scrollTop = el.scrollHeight;
+        callback();
+    } else {
+      // детей меньше, случай при открытии страницы, когда не все дети еще добавились в дом
+      el.addEventListener('DOMNodeInserted', onChildAdded);
+    }
+  }
+
+  function isElementInViewport(el) {
+      var rect = el.getBoundingClientRect();
+
+      return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+  }
 </script>
 </html>

@@ -3,9 +3,13 @@ import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import Navigation
 import Task
 import Time exposing (Time)
+import Array
+import Dict
+
 
 import Types exposing (..)
 import Data exposing (fetchDataForPage)
+import Ports exposing (..)
 
 
 defaultPage : Navigation.Location -> Page
@@ -42,13 +46,27 @@ updatePage model page =
                 , activeRoomId = id }
 
             _ -> { model | page = page }
-    in
-        ( newModel
-        , Cmd.batch
-            [ fetchDataForPage page
+
+        defaultCmd =
+            [ fetchDataForPage model page
             , Task.perform NewTime Time.now
             ]
-        )
+
+        cmd = case page of
+            PageChat id ->
+                let
+                    room =
+                        case Dict.get model.activeRoomId model.rooms of
+                            Nothing -> emptyRoom
+                            Just r -> r
+                in
+                    Cmd.batch
+                        <| scrollElementToEnd { elementId = "chat-history", count = Array.length room.messages }
+                        :: defaultCmd
+
+            _ -> Cmd.batch defaultCmd
+    in
+        ( newModel, cmd)
 
 
 toHash : Page -> String

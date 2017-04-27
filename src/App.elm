@@ -13,7 +13,6 @@ import Types exposing (..)
 import Ports exposing (..)
 import Update exposing (update)
 import Pages exposing (toHash, defaultPage, updatePage)
-import Data exposing (fetchDataForPage)
 import ChatPage
 import Style exposing (..)
 
@@ -58,12 +57,14 @@ init location =
         model =
             { time = 0
             , page = page
+            , appHeight = 0
             , loggedIn = False
             , title = ""
             , cardText = ""
             , cardInputFocus = False
             , messageText = ""
             , messageInputFocus = False
+            , messageInputHeight = 57
             , place = ""
             , user = emptyUser
             , cards = []
@@ -216,7 +217,10 @@ viewTopbar model =
                             else text ""
                         ]
                     , li
-                        [ class "nav-item"
+                        [ classList
+                            [ ("nav-item", True)
+                            , ("_disabled", Dict.isEmpty model.rooms)
+                            ]
                         , onClick (SetPage PageChatList)
                         ]
                         [
@@ -424,6 +428,7 @@ viewCard model card =
     li
         [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "")
         , style [ ("padding", "10px") ]
+        , onClick (SetPage (PageCard card.id))
         ]
         [ viewCardHeader card (Set.member card.authorId model.usersOnline)
         , div [ class "card-title" ] [ text card.title ]

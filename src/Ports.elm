@@ -21,10 +21,14 @@ port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd ms
 port persistCardText : String -> Cmd msg
 port removeNotification : String -> Cmd msg
 port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
-port watchChat : String -> Cmd msg
-port unwatchChat : String -> Cmd msg
+port fetchChatMessages : { chatId : String, lastMessageId : String } -> Cmd msg
+--port watchChatMessages : String -> Cmd msg
+--port unwatchChatMessages : String -> Cmd msg
 port sendMessage : ChatMessage -> Cmd msg
 port fetchRoomMetadata : String -> Cmd msg
+-- id of DOMNode; count of children should be when scroll to fire
+port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
+port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
 
 -- SUBSCRIPTIONS
 
@@ -46,7 +50,9 @@ port roomAdded : (Room -> msg) -> Sub msg
 port onlineUserAdded : (String -> msg) -> Sub msg
 port onlineUserRemoved : (String -> msg) -> Sub msg
 port messageAdded : (ChatMessage -> msg) -> Sub msg
+port chatMessagesFetched : (ChatMessagePack -> msg) -> Sub msg
 port roomMetadataFetched : (RoomMetadata -> msg) -> Sub msg
+port windowResized : (Int -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -69,5 +75,7 @@ subscriptions model =
         , onlineUserAdded AddOnlineUser
         , onlineUserRemoved RemoveOnlineUser
         , messageAdded MessageAdded
+        , chatMessagesFetched MessagePackAdded
         , roomMetadataFetched RoomMetadataFetched
+        , windowResized WindowResized
         ]

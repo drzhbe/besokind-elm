@@ -20,18 +20,20 @@ type Page
 type alias Model =
     { time : Time
     , page : Page
+    , appHeight : Int
     , loggedIn : Bool
     , title : String
     , cardText : String
     , cardInputFocus : Bool
     , messageText : String
     , messageInputFocus : Bool
+    , messageInputHeight : Int
     , place : String
     , user : User
     , cards : (List Card)
     , userCards : (List Card)
-    , activeCard : Card
     , activeRoomId : String
+    , activeCard : Card
     , activeCardVolunteers : (List User)
     , activeUser : User
     , userTakenCards : (List Card)
@@ -52,6 +54,7 @@ type alias User =
     , karma: Int
     , moderator : Bool
     }
+
 
 emptyUser : User
 emptyUser =
@@ -81,22 +84,47 @@ type alias IM =
     }
 
 
+emptyIM : IM
+emptyIM =
+    IM "" "" "" 0
+
+
 type alias ChatMessage =
     { chatId : String
     , im : IM
     }
 
 
+type alias ChatMessagePack =
+    { chatId : String
+    , messages : List IM
+    }
+
+
 type alias Room =
     { id : String
     , users : (List String)
+    -- why Array, but not List?
+    -- we use "prev" – get by index-1 and push to an end of array
+    -- in List we can check "member" to deduplicate, in Array we can't
+    -- but it is better to know some index and to check our last index in model
     , messages : (Array.Array IM)
     }
+
+
+emptyRoom : Room
+emptyRoom =
+    Room "" [] Array.empty
 
 
 type alias RoomMetadata =
     { id : String
     , users : (List String)
+    }
+
+type alias RoomMessages =
+    { id : String
+    , messages : (List IM)
     }
 
 
@@ -154,6 +182,8 @@ type Msg
     | AddOnlineUser String
     | RemoveOnlineUser String
     | ShowRoom Room
-    | MessageAdded ChatMessage
     | SendMessage ChatMessage
+    | MessageAdded ChatMessage
+    | MessagePackAdded ChatMessagePack
     | RoomMetadataFetched RoomMetadata
+    | WindowResized Int

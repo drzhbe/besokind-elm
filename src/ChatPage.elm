@@ -12,7 +12,8 @@ import Style exposing (..)
 import Pages exposing (toHash)
 
 
--- ChatList
+-- ::::::::: ChatList :::::::::
+
 
 viewChatListPage : Model -> Html Msg
 viewChatListPage model =
@@ -21,22 +22,112 @@ viewChatListPage model =
 viewChatList : Model -> Html Msg
 viewChatList model =
     div []
-        [ text "Chat List"
-        , ul [] (List.map viewChatListItem (Dict.values model.rooms))
+        [ text "Chat List Franz List"
+        , ul [] (List.map (viewChatListItem model) (Dict.values model.rooms))
         ]
 
-viewChatListItem : Room -> Html Msg
-viewChatListItem room =
-    li [ onClick (SetPage (PageChat room.id)) ] [ text room.id ]
+viewChatListItem : Model -> Room -> Html Msg
+viewChatListItem model room =
+    let
+        opponent = List.head <|
+            List.filter (notMe model.user.uid) room.users
+        user = case opponent of
+            Nothing -> emptyUser
+            Just userId ->
+                case Dict.get userId model.users of
+                    Nothing -> emptyUser
+                    Just u -> u
+        avatar = user.photoURL
+        lastMsgIndex = (Array.length room.messages) - 1
+        lastMsg = Array.get lastMsgIndex room.messages
+        msgText = case lastMsg of
+            Nothing -> [ text "" ]
+            Just msg ->
+                if msg.userId == model.user.uid
+                then
+                    [ span
+                        [ style [ ("color", grayColor) ] ]
+                        [ text "Вы: " ]
+                    , text msg.text
+                    ]
+                else [ text msg.text ]
+        --date = fromTime (toFloat im.date)
+        --time = (fmtTime (hour date)) ++ ":" ++ (fmtTime (minute date))
+        time = "00:00"
+        dateRepresentation = ""
+    in
+        li
+            [ onClick (SetPage (PageChat room.id))
+            --, style
+            --    [ ("margin-bottom", "10px")
+            --    , ("background", "#fafafa")
+            --    ]
+            ]
+            [ if String.isEmpty dateRepresentation
+                then text ""
+                else div
+                    [ style
+                        [ ("color", grayColor)
+                        , ("margin-bottom", "16px")
+                        , ("padding-top", "6px")
+                        , ("text-align", "center")
+                        ]
+                    ]
+                    [ text dateRepresentation ]
+            , div []
+                [ if String.isEmpty avatar
+                    then text ""
+                    else
+                        a [ href (toHash (PageUser user.uid)) ]
+                            [ img
+                                [ src user.photoURL
+                                -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
+                                , width 34, height 34
+                                , style [ ("float", "left"), ("border-radius", "4px") ]
+                                ] []
+                            ]
+                , if String.isEmpty avatar
+                    then text ""
+                    else
+                        span
+                            [ style
+                                --[ ("line-height", "25px")
+                                [ ("margin-left", "8px")
+                                , ("color", darkestColor)
+                                , ("font-weight", "500")
+                                ]
+                            ]
+                            [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
+                , span
+                    [ style
+                        [ ("color", grayColor)
+                        , ("font-size", "12px")
+                        , ("float", "right")
+                        ]
+                    ]
+                    [ text time ]
+                , div
+                    [ style [ ("margin", "2px 42px 0 42px") ] ]
+                    msgText
+                ]
+            ]
 
 
--- Chat
+notMe : String -> String -> Bool
+notMe currentUserId userId =
+    currentUserId /= userId
+
+
+-- ::::::::: Chat :::::::::
+
 
 viewChatPage : Model -> String -> Html Msg
 viewChatPage model chatId =
-    div []
-        [ viewChatMemberList model chatId
-        , viewChat model chatId
+    div [ style
+            [ ("position", "relative") ]
+        ]
+        --[ viewChatMemberList model chatId
+        [ viewChat model chatId
         , viewChatInput model chatId
         ]
 
@@ -44,13 +135,22 @@ viewChat : Model -> String -> Html Msg
 viewChat model chatId =
     let
         messages = case Dict.get chatId model.rooms of
-            Just room -> room.messages
             Nothing -> Array.empty
+            Just room -> room.messages
+        -- 56 topbar height
+        -- 33 input margins
+        historyHeight = toString (model.appHeight - 56 - model.messageInputHeight - 33) ++ "px"
     in
         -- bottom margin would be from the last message
-        div [ style [ ("margin", "10px 10px 0 10px") ] ]
-            [ ul [] (Array.toList (Array.indexedMap (viewMessage model messages) messages))
+        ul
+            [ id "chat-history"
+            , style
+                [ ("margin", "10px 10px 0 10px")
+                , ("overflow", "scroll")
+                , ("height", historyHeight)
+                ]
             ]
+            (Array.toList (Array.indexedMap (viewMessage model messages) messages))
 
 fmtTime : Int -> String
 fmtTime timePart =
@@ -101,8 +201,6 @@ viewMessage model messages idx im =
         user = case Dict.get im.userId model.users of
             Just u -> u
             Nothing -> emptyUser
-        -- TODO (salnikov): dont paint user avatar if prev msg was his
-        --prevIm = List
         date = fromTime (toFloat im.date)
         time = (fmtTime (hour date)) ++ ":" ++ (fmtTime (minute date))
 
@@ -125,55 +223,63 @@ viewMessage model messages idx im =
                 else ""
             Nothing -> user.photoURL
     in
-        li [ style [ ("margin-bottom", "10px") ] ]
-            [ if String.isEmpty dateRepresentation
-                then text ""
-                else div
-                    [ style
-                        [ ("color", grayColor)
-                        , ("margin-bottom", "16px")
-                        , ("padding-top", "6px")
-                        , ("text-align", "center")
-                        ]
+        -- не рисуем сообщения, если информация об авторах еще не загрузилась
+        if String.length user.uid > 0
+        then viewMessagePrepared dateRepresentation time user avatar im.text
+        else text ""
+
+
+viewMessagePrepared : String -> String -> User -> String -> String -> Html Msg
+viewMessagePrepared dateRepresentation time user avatar msgText =
+    li [ style [ ("margin-bottom", "10px") ] ]
+        [ if String.isEmpty dateRepresentation
+            then text ""
+            else div
+                [ style
+                    [ ("color", grayColor)
+                    , ("margin-bottom", "16px")
+                    , ("padding-top", "6px")
+                    , ("text-align", "center")
                     ]
-                    [ text dateRepresentation ]
-            , div []
-                [ if String.isEmpty avatar
-                    then text ""
-                    else
-                        a [ href (toHash (PageUser user.uid)) ]
-                            [ img
-                                [ src user.photoURL
-                                -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
-                                , width 34, height 34
-                                , style [ ("float", "left"), ("border-radius", "4px") ]
-                                ] []
-                            ]
-                , if String.isEmpty avatar
-                    then text ""
-                    else
-                        span
-                            [ style
-                                --[ ("line-height", "25px")
-                                [ ("margin-left", "8px")
-                                , ("color", darkestColor)
-                                , ("font-weight", "500")
-                                ]
-                            ]
-                            [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
-                , span
-                    [ style
-                        [ ("color", grayColor)
-                        , ("font-size", "12px")
-                        , ("float", "right")
-                        ]
-                    ]
-                    [ text time ]
-                , div
-                    [ style [ ("margin", "2px 42px 0 42px") ] ]
-                    [ text im.text ]
                 ]
+                [ text dateRepresentation ]
+        , div []
+            [ if String.isEmpty avatar
+                then text ""
+                else
+                    a [ href (toHash (PageUser user.uid)) ]
+                        [ img
+                            [ src user.photoURL
+                            -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
+                            , width 34, height 34
+                            , style [ ("float", "left"), ("border-radius", "4px") ]
+                            ] []
+                        ]
+            , if String.isEmpty avatar
+                then text ""
+                else
+                    span
+                        [ style
+                            --[ ("line-height", "25px")
+                            [ ("margin-left", "8px")
+                            , ("color", darkestColor)
+                            , ("font-weight", "500")
+                            ]
+                        ]
+                        [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
+            , span
+                [ style
+                    [ ("color", grayColor)
+                    , ("font-size", "12px")
+                    , ("float", "right")
+                    ]
+                ]
+                [ text time ]
+            , div
+                [ style [ ("margin", "2px 42px 0 42px") ] ]
+                [ text msgText ]
             ]
+        ]
 
 viewChatInput : Model -> String -> Html Msg
 viewChatInput model chatId =
@@ -194,13 +300,17 @@ viewChatInput model chatId =
             if emptyText
             then [ ("background", brandLighterColor), ("color", grayLightestColor) ]
             else [ ("background", brandColor), ("color", "white") ]
-        rowsCount = Debug.log "ROWS" (List.length (String.split "\n" model.messageText))
+        rowsCount = List.length (String.split "\n" model.messageText)
+        bottomPosition = toString -model.messageInputHeight ++ "px"
     in
         div [ style
-                [ ("min-height", "50px")
+                [ ("min-height", "30px")
                 , ("padding", "10px")
                 , ("background", brandLightestColor)
                 , ("border-radius", "4px")
+                , ("width", "530px")
+                , ("position", "absolute")
+                , ("bottom", bottomPosition)
                 ]
             ]
             [ a [ href (toHash (PageUser model.user.uid)) ]
@@ -210,7 +320,22 @@ viewChatInput model chatId =
                     , style [ ("float", "left"), ("border-radius", "4px") ]
                     ] []
                 ]
-            , div [ style [ ("padding", "0 8px 0 42px") ] ]
+            , div
+                [ onClick (SendMessage
+                    { chatId = chatId
+                    , im = (IM "" model.user.uid model.messageText 0)
+                    })
+                , style (
+                    [ ("float", "right")
+                    --, ("margin", "4px 6px 0 0")
+                    , ("padding", "8px")
+                    , ("border-radius", "4px")
+                    , ("max-width", "100px")
+                    , ("cursor", (if emptyText then "default" else "pointer"))
+                    ] ++ createButtonActivityColors)
+                ]
+                [ text "Отпр" ]
+            , div [ style [ ("padding", "0 72px 0 42px") ] ]
                 [ textarea
                     [ class "card-input"
                     , placeholder "Напишите сообщение..."
@@ -224,34 +349,14 @@ viewChatInput model chatId =
                         , ("border", "0")
                         , ("resize", "none")
                         , ("font-size", "14px")
+                        , ("line-height", "20px")
                         , ("width", "100%")
-                        , ("padding", "8px 0 4px 8px")
+                        , ("padding", "6px 4px")
                         , ("border", "1px solid " ++ brandLighterColor)
                         ]
                     ] []
                 ]
-            , div
-                [ style
-                    [ ("display", (if expandedTextArea then "block" else "none"))
-                    , ("height", "40px")
-                    ]
-                ]
-                [ div
-                    [ onClick (SendMessage
-                        { chatId = chatId
-                        , im = (IM "" model.user.uid model.messageText 0)
-                        })
-                    , style (
-                        [ ("float", "right")
-                        , ("margin", "4px 6px 0 0")
-                        , ("padding", "10px 20px")
-                        , ("border-radius", "4px")
-                        , ("max-width", "100px")
-                        , ("cursor", (if emptyText then "default" else "pointer"))
-                        ] ++ createButtonActivityColors)
-                    ]
-                    [ text "Отправить" ]
-                ]
+
             ]
 
 
