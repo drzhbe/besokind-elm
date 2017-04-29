@@ -1,11 +1,12 @@
 module ChatPage exposing (viewChatListPage, viewChatPage)
 import Html exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, on)
 import Html.Attributes exposing (..)
 import Dict
 import Array
 import Date exposing (fromTime, year, month, day, hour, minute, dayOfWeek, Month, Day)
 import Time
+import Json.Decode
 
 import Types exposing (..)
 import Style exposing (..)
@@ -22,8 +23,7 @@ viewChatListPage model =
 viewChatList : Model -> Html Msg
 viewChatList model =
     div []
-        [ text "Chat List Franz List"
-        , ul [] (List.map (viewChatListItem model) (Dict.values model.rooms))
+        [ ul [] (List.map (viewChatListItem model) (Dict.values model.rooms))
         ]
 
 viewChatListItem : Model -> Room -> Html Msg
@@ -40,17 +40,22 @@ viewChatListItem model room =
         avatar = user.photoURL
         lastMsgIndex = (Array.length room.messages) - 1
         lastMsg = Array.get lastMsgIndex room.messages
+
         msgText = case lastMsg of
             Nothing -> [ text "" ]
             Just msg ->
-                if msg.userId == model.user.uid
-                then
-                    [ span
-                        [ style [ ("color", grayColor) ] ]
-                        [ text "Вы: " ]
-                    , text msg.text
-                    ]
-                else [ text msg.text ]
+                let
+                    mainText =
+                        span [] [ text msg.text ]
+                in
+                    if msg.userId == model.user.uid
+                    then
+                        [ span
+                            [ style [ ("color", grayColor) ] ]
+                            [ text "Вы: " ]
+                        , mainText
+                        ]
+                    else [ mainText ]
         --date = fromTime (toFloat im.date)
         --time = (fmtTime (hour date)) ++ ":" ++ (fmtTime (minute date))
         time = "00:00"
@@ -58,10 +63,9 @@ viewChatListItem model room =
     in
         li
             [ onClick (SetPage (PageChat room.id))
-            --, style
-            --    [ ("margin-bottom", "10px")
-            --    , ("background", "#fafafa")
-            --    ]
+            , style
+                [ ("margin-bottom", "10px")
+                ]
             ]
             [ if String.isEmpty dateRepresentation
                 then text ""
@@ -107,7 +111,14 @@ viewChatListItem model room =
                     ]
                     [ text time ]
                 , div
-                    [ style [ ("margin", "2px 42px 0 42px") ] ]
+                    [ style
+                        [ ("margin", "2px 42px 0 42px")
+                        , ("text-overflow", "ellipsis")
+                        , ("white-space", "nowrap")
+                        , ("overflow", "hidden")
+                        , ("max-width", "460px")
+                        ]
+                    ]
                     msgText
                 ]
             ]
@@ -151,6 +162,7 @@ viewChat model chatId =
                 ]
             ]
             (Array.toList (Array.indexedMap (viewMessage model messages) messages))
+
 
 fmtTime : Int -> String
 fmtTime timePart =

@@ -624,8 +624,10 @@
             if (thirdChild) {
 
               function onScroll() {
-                if (isElementInViewport(thirdChild)) {
+                // if (isElementInViewport(thirdChild)) {
+                if (el.scrollTop < 100) {
                   fetchChatMessages(o);
+                  preserveScroll(el);
                   el.removeEventListener('scroll', onScroll);
                 }
               }
@@ -637,6 +639,29 @@
       }
     });
   });
+
+  function preserveScroll(el, callback) {
+    var lastScrollHeight = el.scrollHeight;
+    var started = false;
+
+    function checkHeight() {
+      if (el.scrollHeight > lastScrollHeight) {
+        started = true;
+        requestAnimationFrame(checkHeight);
+        el.scrollTop = el.scrollTop + (el.scrollHeight - lastScrollHeight);
+
+        lastScrollHeight = el.scrollHeight;
+      } else {
+        if (started) {
+          if (callback) callback();
+        } else {
+          requestAnimationFrame(checkHeight);
+        }
+      }
+    }
+
+    requestAnimationFrame(checkHeight);
+  }
 
   function hasEnoughChildren(el, childCount, callback) {
     function onChildAdded() {
