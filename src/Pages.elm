@@ -53,6 +53,16 @@ updatePage model page =
             ]
 
         cmd = case page of
+            PageHome ->
+                let
+                    lastCard =
+                        case List.head (List.reverse model.cards) of
+                            Nothing -> emptyCard
+                            Just card -> card
+                in
+                    Cmd.batch defaultCmd
+                    --    <| fetchStreamCards lastCard.id
+                    --    :: defaultCmd
             PageChat id ->
                 let
                     room =

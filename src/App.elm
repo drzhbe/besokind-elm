@@ -420,7 +420,17 @@ viewCreateCard model =
 
 viewCards : Model -> (List Card) -> Html Msg
 viewCards model cards =
-    ul [] (List.map (viewCard model) cards)
+    ul
+        [ id "card-stream"
+        , style
+            [ ("overflow", "scroll")
+            -- TODO store topbar height, input height in model
+            -- 56 topbar
+            -- 72 input
+            , ("height", toString (model.appHeight - 56 - 82) ++ "px")
+            ]
+        ]
+        (List.map (viewCard model) cards)
 
 
 viewCard : Model -> Card -> Html Msg

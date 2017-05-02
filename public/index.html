@@ -2,6 +2,8 @@
 <html>
 <meta charset="utf-8">
 <meta name=viewport content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="img/favicon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="img/favicon.png">
 <title>besokind</title>
 <style>
   body {
@@ -132,9 +134,30 @@
   /*
     depends on `dateFnsDistanceInWords`
   */
-  function getCards(callback) {
-    dbCards.limitToLast(12).on('child_added', addCardToList);
-    dbCards.limitToLast(12).on('child_changed', updateCard);
+  function getCards(lastCardId) {
+    // var ref = dbCards.limitToLast(12);
+    var ref = dbCards.limitToLast(12);
+    if (lastCardId) {
+      ref = ref.endAt(null, lastCardId)
+    }
+    ref.once('value', function(snap) {
+      var result = [];
+      snap.forEach(function(snapItem) {
+        var card = snapItem.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        result.unshift(card);
+      });
+
+      result.shift();
+
+      app.ports.addCardsToList.send(result);
+    });
+  }
+
+
+  function watchCards() {
+    dbCards.limitToLast(1).on('child_added', addCardToList);
+    dbCards.limitToLast(1).on('child_changed', updateCard);
   }
 
 
@@ -229,6 +252,23 @@
   var app = Elm.Main.fullscreen();
   app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
 
+  // get data from redis cache
+  fetch('http://besokind-c.herokuapp.com/api/v0/get_data')
+    .then(function(response) {
+      response.json().then(function(data) {
+        var result = [];
+
+        for (var key in data) {
+          var card = data[key];
+          card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+          result.unshift(card);
+        }
+
+        app.ports.addCardsToList.send(result);
+      })
+    })
+    .catch(function(error) { console.error(error) });
+
 
   app.ports.login.subscribe(function(authType) {
     switch (authType) {
@@ -264,6 +304,7 @@
   });
 
   app.ports.fetchStreamCards.subscribe(getCards);
+  app.ports.watchStreamCards.subscribe(watchCards);
 
   app.ports.fetchCard.subscribe(function(id) {
     database.ref('cards/' + id).once('value', function(card) {
@@ -306,7 +347,6 @@
     updates['/cards/' + cardId] = card;
     database.ref()
       .update(updates)
-      // .then(getCards)
       .catch(function(error) {
         console.error('## error during [pushing card]:', card, error);
       });
@@ -600,7 +640,7 @@
     requestAnimationFrame(function() {
       var el = document.getElementById(o.elementId);
       if (el) {
-        hasEnoughChildren(el, o.count, function() {
+        hasEnoughChildrenByCount(el, o.count, function() {
           el.scrollTop = el.scrollHeight;
         });
       }
@@ -612,12 +652,28 @@
     app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
   };
 
+  // port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg
+  app.ports.enableCardStreamInfiniteScroll.subscribe(function(o) {
+    var el = document.getElementById(o.elementId);
+    hasEnoughChildrenByHeight(el, 400, function() {
+      function onScroll() {
+        if (el.scrollHeight - el.offsetHeight - el.scrollTop < 100) {
+          console.log('o.lastCardId', typeof o.lastCardId, o.lastCardId);
+          getCards(o.lastCardId);
+          el.removeEventListener('scroll', onScroll);
+        }
+      }
+
+      el.addEventListener('scroll', onScroll);
+    });
+  });
+
   // port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
   app.ports.enableChatHistoryInfiniteScroll.subscribe(function(o) {
     requestAnimationFrame(function() {
       var el = document.getElementById(o.elementId);
       if (el) {
-        hasEnoughChildren(el, 12, function() {
+        hasEnoughChildrenByCount(el, 12, function() {
           // timeout нужен для того, чтобы подписаться после того, как мы доскролим до конца
           setTimeout(function() {
             var thirdChild = el.children[2];
@@ -663,17 +719,32 @@
     requestAnimationFrame(checkHeight);
   }
 
-  function hasEnoughChildren(el, childCount, callback) {
+  function hasEnoughChildrenByCount(el, childCount, callback) {
+    hasEnoughChildren(
+      el,
+      function() { return el.children.length === childCount; },
+      callback
+    );
+  }
+
+  function hasEnoughChildrenByHeight(el, height, callback) {
+    hasEnoughChildren(
+      el,
+      function() { return el.offsetHeight > height; },
+      callback
+    );
+  }
+
+  function hasEnoughChildren(el, condition, callback) {
     function onChildAdded() {
-      if (el.children.length === childCount) {
+      if (condition()) {
         callback();
         el.removeEventListener('DOMNodeInserted', onChildAdded);
       }
     }
 
     // детей столько же, случай при переносе строки в инпуте, надо чтоб высота инпута обновилась
-    if (el.children.length === childCount) {
-        el.scrollTop = el.scrollHeight;
+    if (condition()) {
         callback();
     } else {
       // детей меньше, случай при открытии страницы, когда не все дети еще добавились в дом

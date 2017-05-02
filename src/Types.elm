@@ -76,6 +76,11 @@ type alias Card =
     }
 
 
+emptyCard : Card
+emptyCard =
+    Card "" "" "" "" 0 "" 0 "" "" "" ""
+
+
 type alias IM =
     { id : String
     , userId : String
@@ -161,6 +166,7 @@ type Msg
     | ShowCards (List Card)
     | ShowUserCards (List Card)
     | AddCardToList Card
+    | AddCardsToList (List Card)
     | UpdateCard Card
     | ShowCard Card
     | SetActiveUser User

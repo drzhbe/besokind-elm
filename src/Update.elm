@@ -122,6 +122,16 @@ update msg model =
                 Nothing ->
                     ( { model | cards = card :: model.cards }, Cmd.none )
 
+        AddCardsToList newCards ->
+            let
+                lastCard =
+                    case List.head (List.reverse newCards) of
+                        Nothing -> emptyCard
+                        Just card -> card
+            in
+                ( { model | cards = List.append model.cards newCards }
+                , enableCardStreamInfiniteScroll { elementId = "card-stream", lastCardId = lastCard.id } )
+
         UpdateCard card ->
             ( { model
                 | cards = List.map (replaceCard card) model.cards

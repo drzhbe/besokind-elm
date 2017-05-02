@@ -10,7 +10,7 @@ fetchDataForPage : Model -> Page -> Cmd Msg
 fetchDataForPage model page =
     case page of
         PageHome ->
-            fetchStreamCards "TODO port should recieve at least 1 arg :/"
+            watchStreamCards "TODO port should recieve at least 1 arg :/"
 
         PageNotFound ->
             Cmd.none

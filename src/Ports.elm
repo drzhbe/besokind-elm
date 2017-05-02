@@ -10,6 +10,7 @@ port createCard : Card -> Cmd msg
 port fetchCard : String -> Cmd msg
 port fetchCardVolunteers : String -> Cmd msg
 port fetchStreamCards : String -> Cmd msg
+port watchStreamCards : String -> Cmd msg
 port fetchUserCards : String -> Cmd msg
 -- purpose : "openUserPage" | "openChatPage"
 port fetchUser : { id: String, purpose: String } -> Cmd msg
@@ -28,6 +29,8 @@ port sendMessage : ChatMessage -> Cmd msg
 port fetchRoomMetadata : String -> Cmd msg
 -- id of DOMNode; count of children should be when scroll to fire
 port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
+-- id of DOMNode
+port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg
 port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
 
 -- SUBSCRIPTIONS
@@ -36,6 +39,7 @@ port authStateChanged : (User -> msg) -> Sub msg
 port showCards : ((List Card) -> msg) -> Sub msg
 port userCardsFetched : ((List Card) -> msg) -> Sub msg
 port addCardToList : (Card -> msg) -> Sub msg
+port addCardsToList : ((List Card) -> msg) -> Sub msg
 port updateCard : (Card -> msg) -> Sub msg
 port cardFetched : (Card -> msg) -> Sub msg
 port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
@@ -61,6 +65,7 @@ subscriptions model =
         , showCards ShowCards
         , userCardsFetched ShowUserCards
         , addCardToList AddCardToList
+        , addCardsToList AddCardsToList
         , updateCard UpdateCard
         , cardFetched ShowCard
         , cardVolunteersFetched ShowVolunteers
