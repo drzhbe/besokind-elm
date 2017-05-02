@@ -253,7 +253,7 @@
   app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
 
   // get data from redis cache
-  fetch('http://besokind-c.herokuapp.com/api/v0/get_data')
+  fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
     .then(function(response) {
       response.json().then(function(data) {
         var result = [];
