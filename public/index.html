@@ -253,7 +253,8 @@
   app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
 
   // get data from redis cache
-  fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
+  // fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
+  fetch('https://besokind-b837c.firebaseio.com/cards.json?orderBy=%22$key%22&limitToLast=12')
     .then(function(response) {
       response.json().then(function(data) {
         var result = [];
