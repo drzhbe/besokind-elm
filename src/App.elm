@@ -424,6 +424,7 @@ viewCards model cards =
         [ id "card-stream"
         , style
             [ ("overflow", "scroll")
+            , ("-webkit-overflow-scrolling", "touch")
             -- TODO store topbar height, input height in model
             -- 56 topbar
             -- 72 input
