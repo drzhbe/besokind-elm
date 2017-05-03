@@ -34,7 +34,7 @@ type alias Model =
     , userCards : (List Card)
     , activeRoomId : String
     , activeCard : Card
-    , activeCardVolunteers : (List User)
+    , activeCardVolunteers : (List String)
     , activeUser : User
     , userTakenCards : (List Card)
     , karma : (String, Int)
@@ -61,8 +61,16 @@ emptyUser =
     User "" "" "" "" 0 False
 
 
+-- 0 unpublished
+-- 1 published
+-- 2 done
+-- 3 closed
+type alias CardStatus = Int
+
+
 type alias Card =
     { id : String
+    , status : CardStatus
     , authorId : String
     , authorName : String
     , authorPhotoURL : String
@@ -73,12 +81,13 @@ type alias Card =
     , title : String
     , body : String
     , assignedTo : String
+    , assignedAt : Float
     }
 
 
 emptyCard : Card
 emptyCard =
-    Card "" "" "" "" 0 "" 0 "" "" "" ""
+    Card "" 0 "" "" "" 0 "" 0 "" "" "" "" 0
 
 
 type alias IM =
@@ -175,9 +184,10 @@ type Msg
     | UpdateKarma String String String
     | TakeCard User Card
     | RemoveCard Card
-    | ShowVolunteers (List User)
+    | ShowVolunteers (List String)
     | HandleRemoveCard Card
     | AssignVolunteer Card User String
+    | ConfirmHelp Card
     | ShowProfileMenuPopup
     | ShowNotificationsPopup
     | HidePopup

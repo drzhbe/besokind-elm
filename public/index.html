@@ -322,7 +322,8 @@
     database.ref('card-volunteers/' + id).once('value', function(snapshot) {
       var volunteers = [];
       snapshot.forEach(function(user) {
-        volunteers.push(user.val());
+        volunteers.push(user.key);
+        fetchUser({id: user.key, purpose: 'openCardPage'});
       });
       app.ports.cardVolunteersFetched.send(volunteers);
     });
@@ -357,7 +358,9 @@
     port fetchUser : { id: String, purpose: String } -> Cmd msg
       o.purpose "openUserPage" | "openChatPage"
   */
-  app.ports.fetchUser.subscribe(function(o) {
+  app.ports.fetchUser.subscribe(fetchUser);
+
+  function fetchUser(o) {
     database.ref('users/' + o.id).once('value', function(snapshot) {
       var userInDb = snapshot.val();
 
@@ -367,11 +370,13 @@
             app.ports.activeUserFetched.send(userInDb);
             break;
           case 'openChatPage':
+          case 'openCardPage':
             app.ports.userFetched.send(userInDb);
+            break;
         }
       }
     });
-  });
+  }
 
   /*
     port fetchUserTakenCards : String -> Cmd msg
@@ -424,12 +429,11 @@
     database.ref()
       .update(updates)
       .then(function() {
-        console.info('## volunteer', o.user.uid, 'added to', o.card.id);
-  
         database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
         var volunteers = [];
         snapshot.forEach(function(user) {
-          volunteers.push(user.val());
+          volunteers.push(user.key);
+          fetchUser({id: user.key, purpose: 'openCardPage'});
         });
         app.ports.cardVolunteersFetched.send(volunteers);
       });
@@ -444,16 +448,11 @@
   */
   app.ports.removeCard.subscribe(function(card) {
     database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
-      var volunteers = [];
-      snapshot.forEach(function(volunteer) {
-        volunteers.push(volunteer.key());
-      });
-
       var updates = {};
       updates['cards/' + card.id] = null;
       updates['card-volunteers/' + card.id] = null;
-      volunteers.forEach(function(volunteerId) {
-        updates['user-taken-cards/' + volunteerId + '/' + card.id] = null;
+      snapshot.forEach(function(volunteerId) {
+        updates['user-taken-cards/' + volunteer.key + '/' + card.id] = null;
       });
       database.ref()
         .update(updates)
@@ -503,23 +502,56 @@
   */
   app.ports.assignVolunteer.subscribe(function(o) {
     var updates = {};
-      database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
-        snapshot.forEach(function(volunteer) {
-          updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedTo'] = o.user.uid;
-        });
 
-        updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
-        // updates['rooms/']
+    database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
 
-        database.ref()
-          .update(updates)
-          .then(function() {
-            createRoom(o.card.id, o.card.authorId, o.user.uid, o.userName);
-          })
-          .catch(function(error) {
-            console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
-          });
+      snapshot.forEach(function(volunteer) {
+        updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedTo'] = o.user.uid;
+        updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedAt'] = firebase.database.ServerValue.TIMESTAMP;
       });
+
+      updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+      updates['cards/' + o.card.id + '/assignedAt'] = firebase.database.ServerValue.TIMESTAMP;
+      // updates['rooms/']
+
+      database.ref()
+        .update(updates)
+        .then(function() {
+          createRoom(o.card.id, o.card.authorId, o.user.uid, o.userName);
+        })
+        .catch(function(error) {
+          console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
+        });
+    });
+  });
+
+  // TODO добавить нотификацию волонтеру о конфирме
+  app.ports.confirmHelp.subscribe(function(card) {
+    var updates = {};
+
+    database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
+
+      snapshot.forEach(function(volunteer) {
+        updates['user-taken-cards/' + volunteer.key + '/' + card.id + '/status'] = 2;
+      });
+
+      updates['cards/' + card.id + '/status'] = 2;
+
+      database.ref()
+        .update(updates)
+        .then(function() {
+          database.ref('users/' + card.assignedTo)
+            .transaction(function(user) {
+              if (user) {
+                user.karma = user.karma + card.karma;
+              }
+              return user;
+            });
+        })
+        .catch(function(error) {
+          console.error('## error during [confirming help]: for card:', card, error);
+        });
+    });
   });
 
   /*
@@ -656,6 +688,7 @@
   // port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg
   app.ports.enableCardStreamInfiniteScroll.subscribe(function(o) {
     var el = document.getElementById(o.elementId);
+    if (!el) return;
     hasEnoughChildrenByHeight(el, 400, function() {
       function onScroll() {
         if (el.scrollHeight - el.offsetHeight - el.scrollTop < 100) {
@@ -763,5 +796,57 @@
           rect.right <= (window.innerWidth || document.documentElement.clientWidth)
       );
   }
+
+
+  // ----- administrative functions
+  // function _updateCard(fieldName, fieldValue) {
+  //   var updates = {};
+
+  //   var ready = 2;
+
+  //   function handleUserTakenCard(userId, card) {
+  //     updates['user-taken-cards/' + userId + '/' + card.id + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   function handleCard(card) {
+  //     updates['cards/' + card.id + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   database.ref('user-taken-cards').once('value', function(snap) {
+  //     snap.forEach(function(record) {
+  //       var rec = record.val();
+  //       var userId = record.key;
+  //       for (var cardId in rec) {
+  //         handleUserTakenCard(userId, rec[cardId]);
+  //       }
+  //     });
+  //     ready--;
+  //     if (ready === 0) {
+  //       finish();
+  //     }
+  //   });
+
+  //   database.ref('cards').once('value', function(snap) {
+  //     snap.forEach(function(snapItem) {
+  //       handleCard(snapItem.val());
+  //     });
+  //     ready--;
+  //     if (ready === 0) {
+  //       finish();
+  //     }
+  //   });
+
+  //   function finish() {
+  //     database.ref()
+  //       .update(updates)
+  //       .then(function() {
+  //         console.info('## succesfully [_updateCard]');
+  //       })
+  //       .catch(function(error) {
+  //         console.error('## error during [_updateCard]:', fieldName, error);
+  //       });
+  //   }
+  // }
+  
 </script>
 </html>

@@ -40,3 +40,15 @@ takeButtonStyle =
     , ("display", "inline")
     , ("margin-left", "8px")
     ]
+assignedToLabelStyle : List (String, String)
+assignedToLabelStyle =
+    [ ("background", "limegreen")
+    , ("display", "inline")
+    , ("margin-left", "8px")
+    ]
+successfulHelperLabelStyle : List (String, String)
+successfulHelperLabelStyle =
+    [ ("background", darkestColor)
+    , ("display", "inline")
+    , ("margin-left", "8px")
+    ]

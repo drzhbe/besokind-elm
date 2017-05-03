@@ -19,6 +19,7 @@ port updateKarma : { authorId : String, cardId : String, karma : Int } -> Cmd ms
 port takeCard : { user : User, card : Card } -> Cmd msg
 port removeCard : Card -> Cmd msg
 port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
+port confirmHelp : Card -> Cmd msg
 port persistCardText : String -> Cmd msg
 port removeNotification : String -> Cmd msg
 port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
@@ -42,7 +43,7 @@ port addCardToList : (Card -> msg) -> Sub msg
 port addCardsToList : ((List Card) -> msg) -> Sub msg
 port updateCard : (Card -> msg) -> Sub msg
 port cardFetched : (Card -> msg) -> Sub msg
-port cardVolunteersFetched : ((List User) -> msg) -> Sub msg
+port cardVolunteersFetched : ((List String) -> msg) -> Sub msg
 port activeUserFetched : (User -> msg) -> Sub msg
 port userFetched : (User -> msg) -> Sub msg
 port userTakenCardsFetched : ((List Card) -> msg) -> Sub msg

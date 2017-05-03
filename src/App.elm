@@ -69,7 +69,7 @@ init location =
             , user = emptyUser
             , cards = []
             , userCards = []
-            , activeCard = (Card "" "" "" "" 0 "" 0 "" "" "" "")
+            , activeCard = emptyCard
             , activeRoomId = ""
             , activeCardVolunteers = []
             , activeUser = emptyUser
@@ -455,40 +455,72 @@ viewCard model card =
 
 viewCardFull : Model -> Card -> Html Msg
 viewCardFull model card =
-    div [ style [ ("padding", "10px") ] ]
-    [ viewCardHeader card (Set.member card.authorId model.usersOnline)
-    , div [ class "card-title"] [ text card.title ]
-    , div
-        [ class "card-body"
-        , style [ ("margin-top", "10px"), ("word-wrap", "break-word") ]
-        ]
-        [ text card.body ]
-    , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
-        [ viewCardKarmaPrice model.user.moderator card
-        , if not (String.isEmpty model.user.uid) && model.user.uid == card.authorId
-            then div
+    let
+        background =
+            case card.status of
+                0 -> grayLightestColor
+                1 -> "#fff"
+                2 -> "#C0DF85"
+                _ -> "#fff"
+
+        deleteButton =
+            if
+                not (String.isEmpty model.user.uid)
+                && model.user.uid == card.authorId
+                && card.status < 2
+            then
+                div
                 [ onClick (RemoveCard card)
                 , style (buttonStyle ++ deleteButtonStyle)
                 ]
                 [ text "Удалить" ]
-            else text ""
-        , if not (String.isEmpty model.user.uid)
-            && model.user.uid /= card.authorId
-            && not (List.member model.user model.activeCardVolunteers)
-            then div
+            else
+                text ""
+
+        helpButton =
+            if
+                not (String.isEmpty model.user.uid)
+                && model.user.uid /= card.authorId
+                && not (List.member model.user.uid model.activeCardVolunteers)
+            then
+                div
                 [ onClick (TakeCard model.user card)
                 , style (buttonStyle ++ takeButtonStyle)
                 ]
                 [ text "Помочь" ]
-            else text ""
-        ]
-    , if not (List.isEmpty model.activeCardVolunteers)
-        then div []
-        [ h3 [] [ text "Желающие помочь:" ]
-        , ul [] (List.map (viewVolunteer card model.user) model.activeCardVolunteers)
-        ]
-        else text ""
-    ]
+            else
+                text ""
+
+        volunteerList =
+            if
+                not (List.isEmpty model.activeCardVolunteers)
+            then
+                div []
+                    [ h3 [] [ text "Желающие помочь:" ]
+                    , ul [] (List.map (viewVolunteer model card model.user) model.activeCardVolunteers)
+                    ]
+            else
+                text ""
+    in
+        div [ style
+                [ ("padding", "10px")
+                , ("background", background)
+                ]
+            ]
+            [ viewCardHeader card (Set.member card.authorId model.usersOnline)
+            , div [ class "card-title"] [ text card.title ]
+            , div
+                [ class "card-body"
+                , style [ ("margin-top", "10px"), ("word-wrap", "break-word") ]
+                ]
+                [ text card.body ]
+            , div [ style [ ("margin-top", "8px"), ("position", "relative") ] ]
+                [ viewCardKarmaPrice model.user.moderator card
+                , deleteButton
+                , helpButton
+                ]
+            , volunteerList
+            ]
 
 
 viewCardHeader : Card -> Bool -> Html Msg
@@ -542,8 +574,49 @@ viewCardKarmaPrice userIsModerator card =
 
 
 
-viewVolunteer : Card -> User -> User -> Html Msg
-viewVolunteer card currentUser volunteer =
+viewVolunteer : Model -> Card -> User -> String -> Html Msg
+viewVolunteer model card currentUser volunteerId =
+    let
+        volunteer =
+            case Dict.get volunteerId model.users of
+                Nothing -> emptyUser
+                Just user -> user
+
+        assignVolunteerToCardButton =
+            if
+                (String.isEmpty card.assignedTo)
+                && not (String.isEmpty currentUser.uid)
+                && currentUser.uid == card.authorId
+            then
+                div [ onClick (AssignVolunteer card volunteer currentUser.name)
+                    , style (buttonStyle ++ takeButtonStyle)
+                    ]
+                    [ text "Принять помощь" ]
+            else
+                text ""
+
+        confirmHelpButton =
+            if
+                card.assignedTo == volunteer.uid
+                && card.status == 1
+            then
+                div [ onClick (ConfirmHelp card)
+                    , style (buttonStyle ++ assignedToLabelStyle)
+                    ]
+                    [ text "Спасибо" ]
+            else
+                text ""
+
+        successfulHelperLabel =
+            if
+                card.assignedTo == volunteer.uid
+                && card.status == 2
+            then
+                div [ style (buttonStyle ++ successfulHelperLabelStyle) ]
+                    [ text "Помог" ]
+            else
+                text ""
+    in
     li []
         [ a [ href (toHash (PageUser volunteer.uid)) ]
             [ img
@@ -555,15 +628,9 @@ viewVolunteer card currentUser volunteer =
         , span
             [ style [ ("line-height", "25px"), ("margin-left", "4px") ] ]
             [ viewLink (PageUser volunteer.uid) volunteer.name ]
-        , if (String.isEmpty card.assignedTo)
-            && not (String.isEmpty currentUser.uid)
-            && currentUser.uid == card.authorId
-            then div
-                [ onClick (AssignVolunteer card volunteer currentUser.name)
-                , style (buttonStyle ++ takeButtonStyle)
-                ]
-                [ text "Принять помощь" ]
-            else text ""
+        , assignVolunteerToCardButton
+        , confirmHelpButton
+        , successfulHelperLabel
         ]
 
 

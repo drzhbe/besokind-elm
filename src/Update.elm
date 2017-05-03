@@ -92,6 +92,7 @@ update msg model =
             , Cmd.batch
                 [ createCard
                     { id = ""
+                    , status = 0
                     , authorId = model.user.uid
                     , authorName = model.user.name
                     , authorPhotoURL = model.user.photoURL
@@ -102,6 +103,7 @@ update msg model =
                     , title = model.title
                     , body = model.cardText
                     , assignedTo = ""
+                    , assignedAt = 0
                     }
                 , persistCardText ""
                 ]
@@ -141,8 +143,8 @@ update msg model =
         ShowCard card ->
             ( { model | activeCard = card }, Cmd.none )
 
-        ShowVolunteers users ->
-            ( { model | activeCardVolunteers = users }, Cmd.none )
+        ShowVolunteers userIdList ->
+            ( { model | activeCardVolunteers = userIdList }, Cmd.none )
 
         UserFetched user ->
             ( { model | users = Dict.insert user.uid user model.users }, Cmd.none )
@@ -176,6 +178,9 @@ update msg model =
 
         AssignVolunteer card user cardAuthorName ->
             ( model, assignVolunteer { card = card, user = user, userName = cardAuthorName } )
+
+        ConfirmHelp card ->
+            ( model, confirmHelp card )
 
         ShowProfileMenuPopup ->
             ( { model | popup = ProfileMenuPopup }, Cmd.none )
