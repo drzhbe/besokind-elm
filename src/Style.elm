@@ -10,6 +10,8 @@ brandLightestColor = "#ffe3cb"
 -- almbost black
 darkestColor : String
 darkestColor = "#333"
+darkColor : String
+darkColor = "#555"
 -- lightest gray
 grayColor : String
 grayColor = "#999"

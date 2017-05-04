@@ -76,7 +76,7 @@ init location =
             , userTakenCards = []
             , karma = ("", 0)
             , popup = NoPopup
-            , notifications = Dict.empty
+            , notifications = []
             , usersOnline = Set.empty
             , users = Dict.empty
             , rooms = Dict.empty
@@ -154,8 +154,8 @@ view model =
 viewTopbar : Model -> Html Msg
 viewTopbar model =
     let
-        hasNotifications = Dict.size model.notifications > 0
-        unreadNotificationsCount = Dict.size <| Dict.filter (\_ notification -> not notification.read) model.notifications
+        hasNotifications = List.length model.notifications > 0
+        unreadNotificationsCount = List.length <| List.filter (\notification -> not notification.read) model.notifications
     in
         div
             [ id "topbar"
@@ -300,7 +300,7 @@ viewNotificationsListPopup model =
             , ("line-height", "1em")
             ]
         ]
-        (List.map viewNotification (Dict.values model.notifications))
+        (List.map viewNotification model.notifications)
 
 
 viewNotification : Notification -> Html Msg
@@ -597,7 +597,8 @@ viewVolunteer model card currentUser volunteerId =
 
         confirmHelpButton =
             if
-                card.assignedTo == volunteer.uid
+                currentUser.uid == card.authorId
+                && card.assignedTo == volunteer.uid
                 && card.status == 1
             then
                 div [ onClick (ConfirmHelp card)

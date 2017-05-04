@@ -301,10 +301,6 @@
     });
   });
 
-  app.ports.removeNotification.subscribe(function(userId, notificationId) {
-    database.ref('user-notifications/' + userId + '/' + notificationId).remove();
-  });
-
   app.ports.fetchStreamCards.subscribe(getCards);
   app.ports.watchStreamCards.subscribe(watchCards);
 
@@ -398,12 +394,15 @@
     port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
   */
   app.ports.updateKarma.subscribe(function(o) {
-    var updates = {};
-    updates['cards/' + o.cardId + '/karma'] = o.karma;
-    database.ref()
-      .update(updates)
-      .then(function() {
-        // karma updated
+    database.ref('cards/' + o.cardId)
+      .transaction(function(card) {
+        if (card) {
+          card.karma = o.karma;
+          if (card.status === 0) {
+            card.status = 1;
+          }
+        }
+        return card;
       })
       .catch(function(error) {
         console.error('## error during [updating karma]', o.karma, 'for card:', o.cardId, error);

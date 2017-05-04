@@ -39,7 +39,7 @@ type alias Model =
     , userTakenCards : (List Card)
     , karma : (String, Int)
     , popup : Popup
-    , notifications : (Dict.Dict String Notification)
+    , notifications : (List Notification)
     , usersOnline : (Set.Set String)
     , users : (Dict.Dict String User)
     , rooms : (Dict.Dict String Room)
@@ -192,7 +192,6 @@ type Msg
     | ShowNotificationsPopup
     | HidePopup
     | AddNotification Notification
-    | RemoveNotification String
     --| MarkNotificationsAsRead (List String)
     | RoomAdded Room
     | AddOnlineUser String

@@ -21,7 +21,6 @@ port removeCard : Card -> Cmd msg
 port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
 port confirmHelp : Card -> Cmd msg
 port persistCardText : String -> Cmd msg
-port removeNotification : String -> Cmd msg
 port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
 port fetchChatMessages : { chatId : String, lastMessageId : String } -> Cmd msg
 --port watchChatMessages : String -> Cmd msg
@@ -76,7 +75,6 @@ subscriptions model =
         , cardRemoved HandleRemoveCard
         , cardTextFetched SetCardText
         , notificationAdded AddNotification
-        , notificationRemoved RemoveNotification
         , roomAdded RoomAdded
         , onlineUserAdded AddOnlineUser
         , onlineUserRemoved RemoveOnlineUser

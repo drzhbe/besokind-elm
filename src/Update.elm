@@ -187,11 +187,16 @@ update msg model =
 
         ShowNotificationsPopup ->
             let
-                notReadNotificationIdList = Dict.keys <| Dict.filter (\key notification -> not notification.read) model.notifications
+                notReadNotificationIdList =
+                    List.map
+                        (\notification -> notification.id)
+                        <| List.filter
+                            (\notification -> not notification.read)
+                            model.notifications
             in
                 ( { model
                     | popup = NotificationsListPopup
-                    , notifications = Dict.map updateNotificationAsRead model.notifications
+                    , notifications = List.map updateNotificationAsRead model.notifications
                 }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
 
         HidePopup ->
@@ -201,12 +206,7 @@ update msg model =
 
         AddNotification notification ->
             ( { model
-                | notifications = Dict.insert notification.id notification model.notifications }
-            , Cmd.none )
-
-        RemoveNotification notificationId ->
-            ( { model
-                | notifications = Dict.remove notificationId model.notifications }
+                | notifications = notification :: model.notifications }
             , Cmd.none )
 
             -- TODO not used
@@ -319,8 +319,8 @@ fetchMissingUser users userId =
     else Just (fetchUser { id = userId, purpose = "openChatPage" })
 
 
-updateNotificationAsRead : String -> Notification -> Notification
-updateNotificationAsRead notificationId notification =
+updateNotificationAsRead : Notification -> Notification
+updateNotificationAsRead notification =
     if not notification.read
     then { notification | read = True }
     else notification

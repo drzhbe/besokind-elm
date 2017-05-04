@@ -42,7 +42,7 @@ viewChatListItem model room =
         lastMsg = Array.get lastMsgIndex room.messages
 
         msgText = case lastMsg of
-            Nothing -> [ text "" ]
+            Nothing -> [ span [ style [ ("color", grayColor), ("font-style", "italic") ] ] [ text "Сообщений пока не было" ] ]
             Just msg ->
                 let
                     mainText =
@@ -152,17 +152,46 @@ viewChat model chatId =
         -- 33 input margins
         historyHeight = toString (model.appHeight - 56 - model.messageInputHeight - 33) ++ "px"
     in
-        -- bottom margin would be from the last message
-        ul
-            [ id "chat-history"
-            , style
-                [ ("margin", "10px 10px 0 10px")
-                , ("overflow", "scroll")
-                , ("-webkit-overflow-scrolling", "touch")
-                , ("height", historyHeight)
+        if Array.length messages > 0
+        then
+            -- bottom margin would be from the last message
+            ul
+                [ id "chat-history"
+                , style
+                    [ ("margin", "10px 10px 0 10px")
+                    , ("overflow", "scroll")
+                    , ("-webkit-overflow-scrolling", "touch")
+                    , ("height", historyHeight)
+                    ]
                 ]
-            ]
-            (Array.toList (Array.indexedMap (viewMessage model messages) messages))
+                (Array.toList (Array.indexedMap (viewMessage model messages) messages))
+        else
+            div [ style
+                    [ ("width", "80%")
+                    , ("margin", "0px auto")
+                    , ("padding", "10px 0 20px 0")
+                    , ("text-align", "center")
+                    ]
+                ]
+                [ div [] [ text "Сообщений пока не было." ]
+                , div [] [ text "Можете начать беседу с пожелания добра или любви." ]
+                , div
+                    [ style
+                        [ ("text-align", "right")
+                        , ("color", grayColor)
+                        , ("margin-top", "10px")
+                        ]
+                    ]
+                    [ span [] [ text "С любовью, " ]
+                    , span
+                        [ style
+                            [ ("color", darkColor)
+                            , ("font-weight", "bold")
+                            ]
+                        ]
+                        [ text "Будь Добр" ]
+                    ]
+                ]
 
 
 fmtTime : Int -> String
