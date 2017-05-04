@@ -100,14 +100,7 @@
 <script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-database.js"></script>
 <script src='date-fns-distance.js'></script>
-<script>
-  if (!window.fetch) {
-    // полифил fetch'a для сафариков < 10.1
-    var fetchScript = document.createElement('script');
-    fetchScript.setAttribute('src', 'fetch.js');
-    document.body.appendChild(fetchScript);
-  }
-</script>
+<script src="fetch.js"></script>
 <script src="app.js"></script>
 <script>
   var config = {
@@ -855,6 +848,5 @@
   //       });
   //   }
   // }
-  
 </script>
 </html>
