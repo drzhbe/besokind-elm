@@ -67,7 +67,7 @@ init location =
             , messageInputHeight = 57
             , place = ""
             , user = emptyUser
-            , cards = []
+            , cardList = []
             , userCards = []
             , activeCard = emptyCard
             , activeRoomId = ""
@@ -78,6 +78,7 @@ init location =
             , popup = NoPopup
             , notifications = []
             , usersOnline = Set.empty
+            , cards = Dict.empty
             , users = Dict.empty
             , rooms = Dict.empty
             }
@@ -95,24 +96,24 @@ viewPage model =
                 [ if model.loggedIn
                     then viewCreateCard model
                     else div [] []
-                , viewCards model model.cards
+                , viewCards model model.cardList
                 ]
 
         PageNotFound ->
             -- TODO: сделать 404
-            viewCards model model.cards
+            viewCards model model.cardList
 
         PageCards ->
-            viewCards model model.cards
+            viewCards model model.cardList
 
         PageCard id ->
             viewCardFull model model.activeCard
 
         PagePrizes ->
-            viewCards model model.cards
+            viewCards model model.cardList
 
         PagePrize id ->
-            viewCards model model.cards
+            viewCards model model.cardList
 
         PageUser id ->
             div []
@@ -292,34 +293,38 @@ viewNotificationsListPopup model =
         [ class "notification-list"
         , style
             [ ("position", "absolute")
-            , ("width", "auto")
+            , ("width", "500px")
             , ("background", "white")
             , ("margin", "0")
             , ("border", "1px solid #ddd")
             , ("white-space", "nowrap")
             , ("line-height", "1em")
+            , ("max-height", toString (model.appHeight - 150) ++ "px" )
+            , ("overflow-y", "scroll")
+            , ("-webkit-overflow-scrolling", "touch")
             ]
         ]
-        (List.map viewNotification model.notifications)
+        (List.map (viewNotification model) model.notifications)
 
 
-viewNotification : Notification -> Html Msg
-viewNotification notification =
-    li
-        [ style
-            [ ("color", grayColor)
-            ]
-        ]
-        [ if notification.name == "userTookCard"
-            then viewUserTookCardNotification notification
-            else if notification.name == "userAssignedToCard"
-            then viewUserAssignedToCardNotification notification
-            else div [] [ text notification.name ]
-        ]
+viewNotification : Model -> Notification -> Html Msg
+viewNotification model notification =
+    let
+        card =
+            case Dict.get notification.cardId model.cards of
+                Nothing -> emptyCard
+                Just c -> c
+
+        content = case notification.name of
+            "userTookCard" -> viewUserTookCardNotification card notification
+            "userAssignedToCard" -> viewUserAssignedToCardNotification card notification
+            _ -> div [] [ text notification.name ]
+    in
+        li [ style [ ("color", grayColor) ] ] [ content ]
 
 
-viewUserTookCardNotification : Notification -> Html Msg
-viewUserTookCardNotification notification =
+viewUserTookCardNotification : Card -> Notification -> Html Msg
+viewUserTookCardNotification card notification =
     div []
         [ span
             [ class "light-btn"
@@ -332,11 +337,15 @@ viewUserTookCardNotification notification =
             , onClick (SetPage (PageCard notification.cardId))
             ]
             [ text "помочь" ]
+        , div
+            [ style notificationStyle ]
+            [ text card.body ]
         ]
 
 
-viewUserAssignedToCardNotification : Notification -> Html Msg
-viewUserAssignedToCardNotification notification =
+viewUserAssignedToCardNotification : Card -> Notification -> Html Msg
+viewUserAssignedToCardNotification card notification =
+
     div []
         [ span
             [ class "light-btn"
@@ -349,7 +358,18 @@ viewUserAssignedToCardNotification notification =
             , onClickPreventDefault (SetPage (PageCard notification.cardId))
             ]
             [ text "помощи" ]
+        , div
+            [ style notificationStyle ]
+            [ text card.body ]
         ]
+
+notificationStyle : List (String, String)
+notificationStyle =
+    [ ("width", "460px")
+    , ("text-overflow", "ellipsis")
+    , ("white-space", "nowrap")
+    , ("overflow", "hidden")
+    ]
 
 
 viewCreateCard : Model -> Html Msg

@@ -30,7 +30,7 @@ type alias Model =
     , messageInputHeight : Int
     , place : String
     , user : User
-    , cards : (List Card)
+    , cardList : (List Card)
     , userCards : (List Card)
     , activeRoomId : String
     , activeCard : Card
@@ -41,6 +41,7 @@ type alias Model =
     , popup : Popup
     , notifications : (List Notification)
     , usersOnline : (Set.Set String)
+    , cards : (Dict.Dict String Card)
     , users : (Dict.Dict String User)
     , rooms : (Dict.Dict String Room)
     }
@@ -65,6 +66,8 @@ emptyUser =
 -- 1 published
 -- 2 done
 -- 3 closed
+
+-- TODO: add outdated
 type alias CardStatus = Int
 
 

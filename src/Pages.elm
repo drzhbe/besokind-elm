@@ -56,7 +56,7 @@ updatePage model page =
             PageHome ->
                 let
                     lastCard =
-                        case List.head (List.reverse model.cards) of
+                        case List.head (List.reverse model.cardList) of
                             Nothing -> emptyCard
                             Just card -> card
                 in

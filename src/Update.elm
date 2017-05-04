@@ -110,19 +110,26 @@ update msg model =
             )
 
         ShowCards cards ->
-            ( { model | cards = (List.reverse cards) }, Cmd.none )
+            ( { model | cardList = (List.reverse cards) }, Cmd.none )
 
         ShowUserCards cards ->
             ( { model | userCards = (List.reverse cards) }, Cmd.none )
 
         AddCardToList card ->
-            case List.head model.cards of
+            case List.head model.cardList of
                 Just c ->
                     if card.creationTime > c.creationTime
-                        then ( { model | cards = card :: model.cards }, Cmd.none )
+                        then
+                            ( { model
+                                | cardList = card :: model.cardList
+                                , cards = Dict.insert card.id card model.cards }
+                            , Cmd.none )
                         else ( model, Cmd.none )
                 Nothing ->
-                    ( { model | cards = card :: model.cards }, Cmd.none )
+                    ( { model
+                        | cardList = card :: model.cardList
+                        , cards = Dict.insert card.id card model.cards }
+                    , Cmd.none )
 
         AddCardsToList newCards ->
             let
@@ -131,12 +138,18 @@ update msg model =
                         Nothing -> emptyCard
                         Just card -> card
             in
-                ( { model | cards = List.append model.cards newCards }
+                ( { model
+                    | cardList = List.append model.cardList newCards
+                    , cards = Dict.union
+                        (Dict.fromList <| List.map (\card -> (card.id, card)) newCards)
+                        model.cards
+                    }
                 , enableCardStreamInfiniteScroll { elementId = "card-stream", lastCardId = lastCard.id } )
 
         UpdateCard card ->
             ( { model
-                | cards = List.map (replaceCard card) model.cards
+                | cardList = List.map (replaceCard card) model.cardList
+                , cards = Dict.insert card.id card model.cards
                 , activeCard = replaceCard card model.activeCard
             }, Cmd.none )
 
