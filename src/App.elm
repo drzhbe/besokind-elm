@@ -293,7 +293,7 @@ viewNotificationsListPopup model =
         [ class "notification-list"
         , style
             [ ("position", "absolute")
-            , ("width", "500px")
+            , ("max-width", "500px")
             , ("background", "white")
             , ("margin", "0")
             , ("border", "1px solid #ddd")
@@ -325,18 +325,18 @@ viewNotification model notification =
 
 viewUserTookCardNotification : Card -> Notification -> Html Msg
 viewUserTookCardNotification card notification =
-    div []
+    div [ onClickPreventDefault (SetPage (PageCard notification.cardId)) ]
         [ span
             [ class "light-btn"
-            , onClick (SetPage (PageUser notification.userId))
+            , onClickPreventDefault (SetPage (PageUser notification.userId))
             ]
             [ text notification.userName ]
-        , text " хочет вам "
+        , text " хочет вам помочь в "
         , span
             [ class "light-btn"
-            , onClick (SetPage (PageCard notification.cardId))
+            , onClickPreventDefault (SetPage (PageCard notification.cardId))
             ]
-            [ text "помочь" ]
+            [ text "деле" ]
         , div
             [ style notificationStyle ]
             [ text card.body ]
@@ -345,27 +345,27 @@ viewUserTookCardNotification card notification =
 
 viewUserAssignedToCardNotification : Card -> Notification -> Html Msg
 viewUserAssignedToCardNotification card notification =
-
-    div []
+    div [ onClickPreventDefault (SetPage (PageCard notification.cardId)) ]
         [ span
             [ class "light-btn"
             , onClickPreventDefault (SetPage (PageUser notification.cardAuthorId))
             ]
             [ text notification.userName ]
-        , text " ждет вашей "
+        , text " выбрал вас помощником в "
         , span
             [ class "light-btn"
             , onClickPreventDefault (SetPage (PageCard notification.cardId))
             ]
-            [ text "помощи" ]
+            [ text "деле" ]
         , div
             [ style notificationStyle ]
             [ text card.body ]
         ]
 
+
 notificationStyle : List (String, String)
 notificationStyle =
-    [ ("width", "460px")
+    [ ("max-width", "460px")
     , ("text-overflow", "ellipsis")
     , ("white-space", "nowrap")
     , ("overflow", "hidden")
