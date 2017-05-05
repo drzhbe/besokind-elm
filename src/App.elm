@@ -403,7 +403,6 @@ viewCreateCard model =
             if emptyText
             then [ ("background", brandLighterColor), ("color", grayLightestColor) ]
             else [ ("background", brandColor), ("color", "white") ]
-        _ = Debug.log ":::: loggde in" model.loggedIn
         sendAction =
             if model.loggedIn
             then CreateCard
