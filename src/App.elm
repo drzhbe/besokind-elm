@@ -9,6 +9,7 @@ import String
 import Set
 import Dict
 
+import Helper as H
 import Types exposing (..)
 import Ports exposing (..)
 import Update exposing (update)
@@ -57,6 +58,7 @@ init location =
         model =
             { time = 0
             , page = page
+            , appWidth = 0
             , appHeight = 0
             , loggedIn = False
             , title = ""
@@ -93,9 +95,7 @@ viewPage model =
     case model.page of
         PageHome ->
             div []
-                [ if model.loggedIn
-                    then viewCreateCard model
-                    else div [] []
+                [ viewCreateCard model
                 , viewCards model model.cardList
                 ]
 
@@ -326,16 +326,16 @@ viewNotification model notification =
 
 viewUserTookCardNotification : Card -> Notification -> Html Msg
 viewUserTookCardNotification card notification =
-    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
+    div [ H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
         [ span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.userId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageUser notification.userId)))
             ]
             [ text notification.userName ]
         , text " хочет вам помочь в "
         , span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
             ]
             [ text "деле" ]
         , div
@@ -346,16 +346,16 @@ viewUserTookCardNotification card notification =
 
 viewUserAssignedToCardNotification : Card -> Notification -> Html Msg
 viewUserAssignedToCardNotification card notification =
-    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
+    div [ H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
         [ span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
             ]
             [ text notification.userName ]
         , text " выбрал вас помощником в "
         , span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
             ]
             [ text "деле" ]
         , div
@@ -366,16 +366,16 @@ viewUserAssignedToCardNotification card notification =
 
 viewHelpConfirmedNotification : Card -> Notification -> Html Msg
 viewHelpConfirmedNotification card notification =
-    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
+    div [ H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
         [ span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
             ]
             [ text notification.userName ]
         , span [] [ text " просил о " ]
         , span
             [ class "light-btn"
-            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
+            , H.onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
             ]
             [ text "помощи" ]
         , span [] [ text " и она пришла!" ]
@@ -403,6 +403,11 @@ viewCreateCard model =
             if emptyText
             then [ ("background", brandLighterColor), ("color", grayLightestColor) ]
             else [ ("background", brandColor), ("color", "white") ]
+        _ = Debug.log ":::: loggde in" model.loggedIn
+        sendAction =
+            if model.loggedIn
+            then CreateCard
+            else Login
     in
         div [ style
                 [ ("min-height", "50px")
@@ -445,7 +450,7 @@ viewCreateCard model =
                     ]
                 ]
                 [ div
-                    [ onClick CreateCard
+                    [ onClick sendAction
                     , style (
                         [ ("float", "right")
                         , ("margin", "4px 6px 0 0")
@@ -569,6 +574,7 @@ viewCardHeader : Card -> Bool -> Html Msg
 viewCardHeader card authorOnline =
     div [ class "card-header" ]
         [ a [ href (toHash (PageUser card.authorId))
+            , H.onClickPreventDefault (SetPage (PageUser card.authorId))
             , classList
                 [ ("card-header__author-photo", True)
                 , ("online", authorOnline)
@@ -729,9 +735,12 @@ viewProfileMenuPopup model =
         ]
 
 
-viewLink : Page -> String -> Html msg
+viewLink : Page -> String -> Html Msg
 viewLink page description =
-  a [ href (toHash page) ] [ text description ]
+  a [ href (toHash page)
+    , H.onClickPreventDefault (SetPage page)
+    ]
+    [ text description ]
 
 
 textContentDecoder : Json.Decoder String
@@ -741,11 +750,3 @@ textContentDecoder =
 innerHTMLDecoder : Json.Decoder String
 innerHTMLDecoder =
     Json.at ["target", "innerHTML"] Json.string
-
-onClickPreventDefault : msg -> Attribute msg
-onClickPreventDefault clickHandler =
-    onWithOptions
-        "click"
-        (Options True True)
-        (Json.succeed
-            clickHandler)

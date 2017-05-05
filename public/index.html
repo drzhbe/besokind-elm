@@ -97,9 +97,9 @@
 
 <div id="main"></div>
 
-<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/3.5.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-database.js"></script>
 <script src='date-fns-distance.js'></script>
 <script src="fetch.js"></script>
 <script src="app.js"></script>
@@ -251,7 +251,10 @@
 
 
   var app = Elm.Main.fullscreen();
-  app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
+  app.ports.windowResized.send({
+    width: window.innerWidth || document.documentElement.clientWidth,
+    height: window.innerHeight || document.documentElement.clientHeight
+  });
 
   // get data from redis cache
   // fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
@@ -710,7 +713,10 @@
 
   window.onresize = function() {
     if (app === undefined) return;
-    app.ports.windowResized.send(window.innerHeight || document.documentElement.clientHeight);
+    app.ports.windowResized.send({
+      width: window.innerWidth || document.documentElement.clientWidth,
+      height: window.innerHeight || document.documentElement.clientHeight
+    });
   };
 
   // port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg

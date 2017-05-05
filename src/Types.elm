@@ -20,6 +20,7 @@ type Page
 type alias Model =
     { time : Time
     , page : Page
+    , appWidth : Int
     , appHeight : Int
     , loggedIn : Bool
     , title : String
@@ -205,4 +206,4 @@ type Msg
     | MessageAdded ChatMessage
     | MessagePackAdded ChatMessagePack
     | RoomMetadataFetched RoomMetadata
-    | WindowResized Int
+    | WindowResized { width : Int, height : Int }

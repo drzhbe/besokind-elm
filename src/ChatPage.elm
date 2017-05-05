@@ -8,6 +8,7 @@ import Date exposing (fromTime, year, month, day, hour, minute, dayOfWeek, Month
 import Time
 import Json.Decode
 
+import Helper as H
 import Types exposing (..)
 import Style exposing (..)
 import Pages exposing (toHash)
@@ -62,7 +63,7 @@ viewChatListItem model room =
         dateRepresentation = ""
     in
         li
-            [ onClick (SetPage (PageChat room.id))
+            [ H.onClickPreventDefault (SetPage (PageChat room.id))
             , style
                 [ ("margin-bottom", "10px")
                 ]
@@ -82,7 +83,10 @@ viewChatListItem model room =
                 [ if String.isEmpty avatar
                     then text ""
                     else
-                        a [ href (toHash (PageUser user.uid)) ]
+                        a 
+                            [ href (toHash (PageUser user.uid))
+                            , H.onClickPreventDefault (SetPage (PageUser user.uid))
+                            ]
                             [ img
                                 [ src user.photoURL
                                 -- 34 is 2 lines height + 2 margin between them (16 x 2 + 2)
@@ -101,7 +105,11 @@ viewChatListItem model room =
                                 , ("font-weight", "500")
                                 ]
                             ]
-                            [ a [ href (toHash (PageUser user.uid)) ] [ text user.name ] ]
+                            [ a [ href (toHash (PageUser user.uid))
+                                , H.onClickPreventDefault (SetPage (PageUser user.uid))
+                                ]
+                                [ text user.name ]
+                            ]
                 , span
                     [ style
                         [ ("color", grayColor)

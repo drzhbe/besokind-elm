@@ -326,14 +326,8 @@ update msg model =
             in
                 ( { model | rooms = newRooms }, cmd )
 
-        WindowResized newHeight ->
-            let
-                newModel =
-                    if model.appHeight == newHeight
-                    then model
-                    else { model | appHeight = newHeight }
-            in
-                ( newModel, Cmd.none )
+        WindowResized { width, height } ->
+            ( { model | appWidth = width, appHeight = height }, Cmd.none )
 
 
 fetchMissingUser : (Dict.Dict String User) -> String -> Maybe (Cmd Msg)

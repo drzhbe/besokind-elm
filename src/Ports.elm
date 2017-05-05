@@ -56,7 +56,7 @@ port onlineUserRemoved : (String -> msg) -> Sub msg
 port messageAdded : (ChatMessage -> msg) -> Sub msg
 port chatMessagesFetched : (ChatMessagePack -> msg) -> Sub msg
 port roomMetadataFetched : (RoomMetadata -> msg) -> Sub msg
-port windowResized : (Int -> msg) -> Sub msg
+port windowResized : ({ width : Int, height : Int } -> msg) -> Sub msg
 port clickedSomewhere : (String -> msg) -> Sub msg
 port escPressed : (String -> msg) -> Sub msg
 
