@@ -164,6 +164,7 @@ type Popup
 
 type Msg
     = NoOp
+    | PortWithNoArgs Msg String
     | NewTime Time
     | HandleUrlChange Navigation.Location
     | SetPage Page
@@ -193,7 +194,7 @@ type Msg
     | ConfirmHelp Card
     | ShowProfileMenuPopup
     | ShowNotificationsPopup
-    | HidePopup
+    | HidePopup Msg
     | AddNotification Notification
     --| MarkNotificationsAsRead (List String)
     | RoomAdded Room

@@ -54,3 +54,9 @@ successfulHelperLabelStyle =
     , ("display", "inline")
     , ("margin-left", "8px")
     ]
+italicLabelStyle : List (String, String)
+italicLabelStyle =
+    [ ("font-style", "italic")
+    , ("color", grayColor)
+    , ("margin", "0 8px")
+    ]

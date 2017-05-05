@@ -57,6 +57,8 @@ port messageAdded : (ChatMessage -> msg) -> Sub msg
 port chatMessagesFetched : (ChatMessagePack -> msg) -> Sub msg
 port roomMetadataFetched : (RoomMetadata -> msg) -> Sub msg
 port windowResized : (Int -> msg) -> Sub msg
+port clickedSomewhere : (String -> msg) -> Sub msg
+port escPressed : (String -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -82,4 +84,6 @@ subscriptions model =
         , chatMessagesFetched MessagePackAdded
         , roomMetadataFetched RoomMetadataFetched
         , windowResized WindowResized
+        , clickedSomewhere (PortWithNoArgs (HidePopup NoOp))
+        , escPressed (PortWithNoArgs (HidePopup NoOp))
         ]

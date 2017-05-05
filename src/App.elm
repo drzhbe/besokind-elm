@@ -137,19 +137,19 @@ viewPage model =
 
 view : Model -> Html Msg
 view model =
-    div [ onClick HidePopup ]
-    [ viewTopbar model
-    , div
-        [ id "page-container"
-        , style [ ("max-width", "560px"), ("margin", "0 auto") ]
-        ]
-        [ div
-            [ id "content-cointainer"
-            , style [ ("margin", "56px 8px 8px 8px") ]
+    div []
+        [ viewTopbar model
+        , div
+            [ id "page-container"
+            , style [ ("max-width", "560px"), ("margin", "0 auto") ]
             ]
-            [ viewPage model ]
+            [ div
+                [ id "content-cointainer"
+                , style [ ("margin", "56px 8px 8px 8px") ]
+                ]
+                [ viewPage model ]
+            ]
         ]
-    ]
 
 
 viewTopbar : Model -> Html Msg
@@ -201,7 +201,7 @@ viewTopbar model =
                             (Options True True)
                             (Json.succeed
                                 (if model.popup /= NoPopup
-                                    then HidePopup
+                                    then (HidePopup NoOp)
                                     else ShowNotificationsPopup))
                         ]
                         [ 
@@ -251,7 +251,7 @@ viewTopbar model =
                                 (Options True True)
                                 (Json.succeed
                                     (if model.popup /= NoPopup
-                                        then HidePopup
+                                        then (HidePopup NoOp)
                                         else ShowProfileMenuPopup))
                             , class "topbar__user-photo"
                             , src model.user.photoURL
@@ -318,6 +318,7 @@ viewNotification model notification =
         content = case notification.name of
             "userTookCard" -> viewUserTookCardNotification card notification
             "userAssignedToCard" -> viewUserAssignedToCardNotification card notification
+            "helpConfirmed" -> viewHelpConfirmedNotification card notification
             _ -> div [] [ text notification.name ]
     in
         li [ style [ ("color", grayColor) ] ] [ content ]
@@ -325,16 +326,16 @@ viewNotification model notification =
 
 viewUserTookCardNotification : Card -> Notification -> Html Msg
 viewUserTookCardNotification card notification =
-    div [ onClickPreventDefault (SetPage (PageCard notification.cardId)) ]
+    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
         [ span
             [ class "light-btn"
-            , onClickPreventDefault (SetPage (PageUser notification.userId))
+            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.userId)))
             ]
             [ text notification.userName ]
         , text " хочет вам помочь в "
         , span
             [ class "light-btn"
-            , onClickPreventDefault (SetPage (PageCard notification.cardId))
+            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
             ]
             [ text "деле" ]
         , div
@@ -345,18 +346,39 @@ viewUserTookCardNotification card notification =
 
 viewUserAssignedToCardNotification : Card -> Notification -> Html Msg
 viewUserAssignedToCardNotification card notification =
-    div [ onClickPreventDefault (SetPage (PageCard notification.cardId)) ]
+    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
         [ span
             [ class "light-btn"
-            , onClickPreventDefault (SetPage (PageUser notification.cardAuthorId))
+            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
             ]
             [ text notification.userName ]
         , text " выбрал вас помощником в "
         , span
             [ class "light-btn"
-            , onClickPreventDefault (SetPage (PageCard notification.cardId))
+            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
             ]
             [ text "деле" ]
+        , div
+            [ style notificationStyle ]
+            [ text card.body ]
+        ]
+
+
+viewHelpConfirmedNotification : Card -> Notification -> Html Msg
+viewHelpConfirmedNotification card notification =
+    div [ onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId))) ]
+        [ span
+            [ class "light-btn"
+            , onClickPreventDefault (HidePopup (SetPage (PageUser notification.cardAuthorId)))
+            ]
+            [ text notification.userName ]
+        , span [] [ text " просил о " ]
+        , span
+            [ class "light-btn"
+            , onClickPreventDefault (HidePopup (SetPage (PageCard notification.cardId)))
+            ]
+            [ text "помощи" ]
+        , span [] [ text " и она пришла!" ]
         , div
             [ style notificationStyle ]
             [ text card.body ]
@@ -628,13 +650,23 @@ viewVolunteer model card currentUser volunteerId =
             else
                 text ""
 
+        helpingLabel =
+            if
+                card.assignedTo == volunteer.uid
+                && card.status == 1
+            then
+                span [ style italicLabelStyle ]
+                    [ text "помогает" ]
+            else
+                text ""
+
         successfulHelperLabel =
             if
                 card.assignedTo == volunteer.uid
                 && card.status == 2
             then
-                div [ style (buttonStyle ++ successfulHelperLabelStyle) ]
-                    [ text "Помог" ]
+                span [ style italicLabelStyle ]
+                    [ text "помог" ]
             else
                 text ""
     in
@@ -649,9 +681,10 @@ viewVolunteer model card currentUser volunteerId =
         , span
             [ style [ ("line-height", "25px"), ("margin-left", "4px") ] ]
             [ viewLink (PageUser volunteer.uid) volunteer.name ]
+        , helpingLabel
+        , successfulHelperLabel
         , assignVolunteerToCardButton
         , confirmHelpButton
-        , successfulHelperLabel
         ]
 
 

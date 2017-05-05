@@ -186,7 +186,6 @@
     app.ports.notificationRemoved.send(notification.val());
   }
 
-
   auth.onAuthStateChanged(function(user) {
     if (!user) return;
 
@@ -526,7 +525,6 @@
     });
   });
 
-  // TODO добавить нотификацию волонтеру о конфирме
   app.ports.confirmHelp.subscribe(function(card) {
     var updates = {};
 
@@ -538,9 +536,11 @@
 
       updates['cards/' + card.id + '/status'] = 2;
 
+
       database.ref()
         .update(updates)
         .then(function() {
+          // update user karma
           database.ref('users/' + card.assignedTo)
             .transaction(function(user) {
               if (user) {
@@ -548,6 +548,33 @@
               }
               return user;
             });
+
+          // create notifications for each volunteer
+          var updates = {};
+          snapshot.forEach(function(volunteer) {
+            var volunteerId = volunteer.key;
+            var volunteerNotificationId = database.ref('user-notifications/' + volunteerId).push().key;
+            updates['user-notifications/' + volunteerId + '/' + volunteerNotificationId] = {
+              id: volunteerNotificationId,
+              name: 'helpConfirmed',
+              read: false,
+              cardId: card.id,
+              userId: card.assignedTo,
+              cardAuthorId: card.authorId,
+              userName: card.authorName
+            };
+          });
+          database.ref()
+            .update(updates)
+            .then(function() {})
+            .catch(function(error) {
+              console.error('## error during [creating helpConfirmed notifications]: for card:', card, error);
+            });
+
+          // update card in application
+          database.ref('cards/' + card.id).once('value', function(snap) {
+            app.ports.updateCard.send(snap.val());
+          });
         })
         .catch(function(error) {
           console.error('## error during [confirming help]: for card:', card, error);
@@ -797,6 +824,15 @@
           rect.right <= (window.innerWidth || document.documentElement.clientWidth)
       );
   }
+
+  window.addEventListener('click', function() {
+    app.ports.clickedSomewhere.send('');
+  });
+  window.addEventListener('keydown', function(e) {
+    if (e.keyCode === 27) {
+      app.ports.escPressed.send('');
+    }
+  });
 
 
   // ----- administrative functions

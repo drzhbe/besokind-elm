@@ -17,6 +17,11 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        -- костыль для того, чтобы принимать порт и вызывать Msg без аргументов,
+        -- но т.к. порт всегда должен что-то принимать, делаем такую обертку
+        PortWithNoArgs actualMsg _ ->
+            update actualMsg model
+
         NewTime time ->
             ( { model | time = time }, Cmd.none )
 
@@ -212,10 +217,16 @@ update msg model =
                     , notifications = List.map updateNotificationAsRead model.notifications
                 }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
 
-        HidePopup ->
-            if model.popup == NoPopup
-            then ( model, Cmd.none )
-            else ( { model | popup = NoPopup }, Cmd.none )
+        HidePopup callback ->
+            let
+                newModel =
+                    if model.popup == NoPopup
+                    then model
+                    else { model | popup = NoPopup }
+            in
+                case callback of
+                    NoOp -> ( newModel, Cmd.none )
+                    _ -> update callback newModel
 
         AddNotification notification ->
             ( { model
