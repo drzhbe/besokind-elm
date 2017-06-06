@@ -27,6 +27,8 @@ port fetchChatMessages : { chatId : String, lastMessageId : String } -> Cmd msg
 --port unwatchChatMessages : String -> Cmd msg
 port sendMessage : ChatMessage -> Cmd msg
 port fetchRoomMetadata : String -> Cmd msg
+-- id of DOMNode
+port focusElement : String -> Cmd msg
 -- id of DOMNode; count of children should be when scroll to fire
 port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
 -- id of DOMNode

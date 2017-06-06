@@ -166,7 +166,7 @@ type Popup
     = NoPopup
     | ProfileMenuPopup
     | NotificationsListPopup
-    | CityListPopup
+    | CityListPopup String
 
 
 type Msg
@@ -205,7 +205,7 @@ type Msg
     | ConfirmHelp Card
     | ShowProfileMenuPopup
     | ShowNotificationsPopup
-    | ShowCityListPopup
+    | ShowCityListPopup String
     | HidePopup Msg
     | AddNotification Notification
     --| MarkNotificationsAsRead (List String)

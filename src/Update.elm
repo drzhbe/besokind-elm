@@ -235,12 +235,18 @@ update msg model =
                     , notifications = List.map updateNotificationAsRead model.notifications
                 }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
 
-        ShowCityListPopup ->
+        ShowCityListPopup target ->
+            let
+                focusTarget = case target of
+                    "topbar" -> "topbar__citylist"
+                    "card-input" -> "card-input__citylist"
+                    _ -> ""
+            in
             ( { model
-                | popup = CityListPopup
+                | popup = CityListPopup target
                 , filterCityListQuery = ""
                 , filteredCityList = model.cities.list }
-            , Cmd.none )
+            , focusElement focusTarget )
 
         HidePopup callback ->
             let

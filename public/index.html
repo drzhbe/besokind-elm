@@ -736,6 +736,15 @@
       });
   });
 
+  app.ports.focusElement.subscribe(function(elementId) {
+    requestAnimationFrame(function() {
+      var el = document.getElementById(elementId);
+      if (el) {
+        el.focus();
+      }
+    });
+  });
+
   // id of DOMNode; count of children should be when scroll to fire
   // port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
   app.ports.scrollElementToEnd.subscribe(function(o) {

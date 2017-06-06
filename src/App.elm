@@ -255,12 +255,14 @@ viewTopbar model =
                                 ]
                                 [ span
                                     [ class "nav-item"
-                                    , onClickShowPopup model ShowCityListPopup
+                                    , onClickShowPopup model (ShowCityListPopup "topbar")
                                     ]
                                     [ text city ]
-                                , if model.popup == CityListPopup
-                                    then viewCityListPopup model
-                                    else text ""
+                                , case model.popup of
+                                    CityListPopup target -> if target == "topbar"
+                                        then viewCityListPopup target model
+                                        else text ""
+                                    _ -> text ""
                                 ]
                             , div
                                 [ style
@@ -315,8 +317,8 @@ onClickShowPopup model msg =
             else msg)
 
 
-viewCityListPopup : Model -> Html Msg
-viewCityListPopup model =
+viewCityListPopup : String -> Model -> Html Msg
+viewCityListPopup target model =
     let
         hasError = List.length model.cities.list == 0
             || not (String.isEmpty model.filterCityListQuery)
@@ -340,17 +342,34 @@ viewCityListPopup model =
                     , span [] [ text " был в вашем славном городе" ]
                     ]
                 else text ""
+
+        positionLeft =
+            if target == "topbar"
+            then "-200px"
+            else "-10px"
+
+        positionTop =
+            if target == "topbar"
+            then "0"
+            else "-10px"
+
+        cityListFilterId = case target of
+            "topbar" -> "topbar__citylist"
+            "card-input" -> "card-input__citylist"
+            _ -> ""
     in
         div [ style
                 [ ("position", "absolute")
                 , ("width", "300px")
-                , ("left", "-200px")
+                , ("left", positionLeft)
+                , ("top", positionTop)
                 , ("background", "white")
                 , ("border", "1px solid #ddd")
                 ]
             ]
             [ input
-                [ H.onClickPreventDefault NoOp
+                [ id cityListFilterId
+                , H.onClickPreventDefault NoOp
                 , onInput SetFilterCityListText
                 , placeholder "Введите название города"
                 , autofocus True
@@ -521,7 +540,7 @@ viewCreateCard model =
             else case Dict.get model.user.city model.cities.engToRus of
                 Just c -> c
                 Nothing -> model.user.city
-            
+
     in
         div [ style
                 [ ("min-height", "50px")
@@ -564,14 +583,22 @@ viewCreateCard model =
                     ]
                 ]
                 [ div
-                    []
+                    [ style
+                        [ ("position", "relative")
+                        , ("display", "inline-block")
+                        , ("margin", "10px 0 0 66px")
+                        , ("z-index", "2")
+                        ]
+                    ]
                     [ span
-                        [ onClickShowPopup model ShowCityListPopup
+                        [ onClickShowPopup model (ShowCityListPopup "card-input")
                         ]
                         [ text city ]
-                    , if model.popup == CityListPopup
-                        then viewCityListPopup model
-                        else text ""
+                    , case model.popup of
+                        CityListPopup target -> if target == "card-input"
+                            then viewCityListPopup target model
+                            else text ""
+                        _ -> text ""
                     ]
                 , div
                     [ onClick sendAction
