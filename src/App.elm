@@ -60,6 +60,10 @@ init location =
             , page = page
             , appWidth = 0
             , appHeight = 0
+            --, cities = { english = [], russian = [] }
+            , cities = { engToRus = Dict.empty, list = [] }
+            , filteredCityList = []
+            , filterCityListQuery = ""
             , loggedIn = False
             , title = ""
             , cardText = ""
@@ -157,6 +161,11 @@ viewTopbar model =
     let
         hasNotifications = List.length model.notifications > 0
         unreadNotificationsCount = List.length <| List.filter (\notification -> not notification.read) model.notifications
+        city = if String.isEmpty model.user.city
+            then "Город"
+            else case Dict.get model.user.city model.cities.engToRus of
+                Just c -> c
+                Nothing -> model.user.city
     in
         div
             [ id "topbar"
@@ -196,13 +205,7 @@ viewTopbar model =
                             [ ("nav-item", True)
                             , ("_disabled", unreadNotificationsCount == 0)
                             ]
-                        , onWithOptions
-                            "click"
-                            (Options True True)
-                            (Json.succeed
-                                (if model.popup /= NoPopup
-                                    then (HidePopup NoOp)
-                                    else ShowNotificationsPopup))
+                        , onClickShowPopup model ShowNotificationsPopup
                         ]
                         [ 
                         --    img
@@ -238,36 +241,53 @@ viewTopbar model =
                     ]
                 , if model.loggedIn
                     then div
-                        [ style
-                            [ ("position", "relative")
-                            , ("float", "right")
-                            , ("width", "46px")
-                            , ("margin-right", "4px")
-                            ]
-                        ]
-                        [ img
-                            [ onWithOptions
-                                "click"
-                                (Options True True)
-                                (Json.succeed
-                                    (if model.popup /= NoPopup
-                                        then (HidePopup NoOp)
-                                        else ShowProfileMenuPopup))
-                            , class "topbar__user-photo"
-                            , src model.user.photoURL
-                            , width 38
-                            , height 38
-                            , style
-                                [ ("border-radius", "100%")
-                                , ("margin", "4px")
-                                , ("cursor", "pointer")
+                            [ style
+                                [ ("position", "relative")
+                                , ("float", "right")
+                                --, ("width", "46px")
+                                , ("margin-right", "4px")
                                 ]
                             ]
-                            []
-                        , if model.popup == ProfileMenuPopup
-                            then viewProfileMenuPopup model
-                            else text ""
-                        ]
+                            [ div
+                                [ style
+                                    [ ("display", "inline-block")
+                                    ]
+                                ]
+                                [ span
+                                    [ class "nav-item"
+                                    , onClickShowPopup model ShowCityListPopup
+                                    ]
+                                    [ text city ]
+                                , if model.popup == CityListPopup
+                                    then viewCityListPopup model
+                                    else text ""
+                                ]
+                            , div
+                                [ style
+                                    [ ("position", "relative")
+                                    , ("float", "right")
+                                    , ("width", "46px")
+                                    , ("margin-right", "4px")
+                                    ]
+                                ]
+                                [ img
+                                    [ onClickShowPopup model ShowProfileMenuPopup
+                                    , class "topbar__user-photo"
+                                    , src model.user.photoURL
+                                    , width 38
+                                    , height 38
+                                    , style
+                                        [ ("border-radius", "100%")
+                                        , ("margin", "4px")
+                                        , ("cursor", "pointer")
+                                        ]
+                                    ]
+                                    []
+                                , if model.popup == ProfileMenuPopup
+                                    then viewProfileMenuPopup model
+                                    else text ""
+                                ]
+                            ] 
                     else div
                         [ class "topbar__login-btn"
                         , onClick Login
@@ -285,6 +305,95 @@ viewTopbar model =
                         [ text "Войти" ]
                 ]
             ]
+
+
+onClickShowPopup : Model -> Msg -> Attribute Msg
+onClickShowPopup model msg =
+    H.onClickPreventDefault
+        (if model.popup /= NoPopup
+            then (HidePopup NoOp)
+            else msg)
+
+
+viewCityListPopup : Model -> Html Msg
+viewCityListPopup model =
+    let
+        hasError = List.length model.cities.list == 0
+            || not (String.isEmpty model.filterCityListQuery)
+                && List.length model.filteredCityList == 0
+
+        errorText =
+            if List.length model.cities.list == 0
+            then div []
+                [ span [] [ text "Список городов не загрузился. Видимо, сейчас во всем мире столько добра, что в нашем сайте нет необходимости! Позвоните близким, скажите, что любите их. А также можете попробовать обновить страницу." ]
+                ]
+            else
+                if not (String.isEmpty model.filterCityListQuery)
+                && List.length model.filteredCityList == 0
+                then div []
+                    [ span [] [ text "По запросу " ]
+                    , span [ style [ ("color", grayColor) , ("font-weight", "bold") ] ]
+                        [ text model.filterCityListQuery ]
+                    , span [] [ text " не нашлось города. Напишите нам, если хотите чтобы " ]
+                    , span [ style [ ("color", darkColor) , ("font-weight", "bold") ] ]
+                        [ text "Будь Добр" ]
+                    , span [] [ text " был в вашем славном городе" ]
+                    ]
+                else text ""
+    in
+        div [ style
+                [ ("position", "absolute")
+                , ("width", "300px")
+                , ("left", "-200px")
+                , ("background", "white")
+                , ("border", "1px solid #ddd")
+                ]
+            ]
+            [ input
+                [ H.onClickPreventDefault NoOp
+                , onInput SetFilterCityListText
+                , placeholder "Введите название города"
+                , autofocus True
+                , width 100
+                --, Html.Events.onFocus (FilterCityListInputFocus True)
+                --, Html.Events.onBlur (FilterCityListInputFocus False)
+                , style
+                    [ ("margin", "10px 10px 5px 10px")
+                    , ("width", "260px")
+                    , ("border", "0")
+                    , ("outline", "0")
+                    , ("font-size", "14px")
+                    , ("line-height", "20px")
+                    ]
+                ]
+                []
+            , div
+                [ style
+                    [ ("display", if hasError then "block" else "none")
+                    , ("padding", "10px")
+                    ]
+                ]
+                [ errorText ]
+            , ul
+                [ style
+                    [ ("max-height", toString (model.appHeight - 150) ++ "px" )
+                    , ("overflow-y", "scroll")
+                    , ("-webkit-overflow-scrolling", "touch")
+                    ]
+                ]
+                (List.map (viewCityListItem model.filterCityListQuery) model.filteredCityList)
+            ]
+
+
+viewCityListItem : String -> String -> Html Msg
+viewCityListItem query city =
+    -- TODO highlight with query
+    li 
+        [ onClick (SetCity city)
+        , class "city-list-item"
+        , style [ ("padding", "5px 10px 5px 10px") ]
+        ]
+        [ text city ]
 
 
 viewNotificationsListPopup : Model -> Html Msg
@@ -407,6 +516,12 @@ viewCreateCard model =
             if model.loggedIn
             then CreateCard
             else Login
+        city = if String.isEmpty model.user.city
+            then "Город"
+            else case Dict.get model.user.city model.cities.engToRus of
+                Just c -> c
+                Nothing -> model.user.city
+            
     in
         div [ style
                 [ ("min-height", "50px")
@@ -430,7 +545,7 @@ viewCreateCard model =
                     , rows (if expandedTextArea then 4 else 2)
                     , onInput SetCardText
                     , Html.Events.onFocus (CardInputFocus True)
-                    , Html.Events.onBlur (CardInputFocus False)
+                    --, Html.Events.onBlur (CardInputFocus False)
                     , style
                         [ ("outline", "none")
                         , ("border", "0")
@@ -449,6 +564,16 @@ viewCreateCard model =
                     ]
                 ]
                 [ div
+                    []
+                    [ span
+                        [ onClickShowPopup model ShowCityListPopup
+                        ]
+                        [ text city ]
+                    , if model.popup == CityListPopup
+                        then viewCityListPopup model
+                        else text ""
+                    ]
+                , div
                     [ onClick sendAction
                     , style (
                         [ ("float", "right")
@@ -483,7 +608,10 @@ viewCards model cards =
 viewCard : Model -> Card -> Html Msg
 viewCard model card =
     li
-        [ class (if not (String.isEmpty card.assignedTo) then "_assigned" else "")
+        [ classList
+            [ ("card", True)
+            , ("_assigned", not (String.isEmpty card.assignedTo))
+            ]
         , style [ ("padding", "10px") ]
         , onClick (SetPage (PageCard card.id))
         ]

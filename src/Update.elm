@@ -5,6 +5,8 @@ import Set
 import Dict
 import Array
 import Navigation
+import Char
+import Json.Decode exposing (Decoder)
 
 import Types exposing (..)
 import Ports exposing (..)
@@ -79,6 +81,22 @@ update msg model =
                     --else persistCardText model.cardText
             in
                 ( { model | messageInputFocus = focused }, command )
+
+        SetFilterCityListText text ->
+            update FilterCityList { model | filterCityListQuery = text }
+
+        FilterCityList ->
+            let
+                query = case String.uncons model.filterCityListQuery of
+                    Just (head, tail) -> String.cons (Char.toUpper head) tail
+                    Nothing -> ""
+                _ = Debug.log ":::: query" query
+                filteredCityList = List.filter (\city -> String.startsWith query city) model.cities.list
+            in
+                ( { model | filteredCityList = filteredCityList }, Cmd.none )
+
+        SetCity city ->
+            ( model, setCity { userId = model.user.uid, city = city } )
 
         Login ->
             ( model, login "google" )
@@ -217,6 +235,13 @@ update msg model =
                     , notifications = List.map updateNotificationAsRead model.notifications
                 }, markNotificationsAsRead { userId = model.user.uid, notificationIdList = notReadNotificationIdList } )
 
+        ShowCityListPopup ->
+            ( { model
+                | popup = CityListPopup
+                , filterCityListQuery = ""
+                , filteredCityList = model.cities.list }
+            , Cmd.none )
+
         HidePopup callback ->
             let
                 newModel =
@@ -328,6 +353,27 @@ update msg model =
 
         WindowResized { width, height } ->
             ( { model | appWidth = width, appHeight = height }, Cmd.none )
+
+        ChangeCityList citiesJSON ->
+            let
+                engToRus = case Json.Decode.decodeString citiesDecoder citiesJSON of
+                    Ok value -> value
+                    Err error -> Dict.empty
+                cities = { engToRus = engToRus, list = Dict.values engToRus }
+                --cities = { engToRus = dict, list = Dict.values dict }
+            in
+            --( { model
+            --    | cities = { english = english, russian = russian }
+            --    , filteredCityList = russian }
+            ( { model
+                | cities = cities
+                , filteredCityList = cities.list }
+            , Cmd.none )
+
+
+citiesDecoder : Decoder (Dict.Dict String String)
+citiesDecoder =
+    Json.Decode.dict Json.Decode.string
 
 
 fetchMissingUser : (Dict.Dict String User) -> String -> Maybe (Cmd Msg)

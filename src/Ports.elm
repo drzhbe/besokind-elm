@@ -32,6 +32,7 @@ port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
 -- id of DOMNode
 port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg
 port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
+port setCity : { userId : String, city : String } -> Cmd msg
 
 -- SUBSCRIPTIONS
 
@@ -59,6 +60,8 @@ port roomMetadataFetched : (RoomMetadata -> msg) -> Sub msg
 port windowResized : ({ width : Int, height : Int } -> msg) -> Sub msg
 port clickedSomewhere : (String -> msg) -> Sub msg
 port escPressed : (String -> msg) -> Sub msg
+port cityListChanged : (String -> msg) -> Sub msg
+--port cityListChanged : ({ english : (List String), russian : (List String) } -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -86,4 +89,5 @@ subscriptions model =
         , windowResized WindowResized
         , clickedSomewhere (PortWithNoArgs (HidePopup NoOp))
         , escPressed (PortWithNoArgs (HidePopup NoOp))
+        , cityListChanged ChangeCityList
         ]

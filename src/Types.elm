@@ -22,6 +22,10 @@ type alias Model =
     , page : Page
     , appWidth : Int
     , appHeight : Int
+    , cities : { engToRus : (Dict.Dict String String), list : (List String) }
+    --, cities : { english : (List String), russian : (List String) }
+    , filteredCityList : (List String)
+    , filterCityListQuery : String
     , loggedIn : Bool
     , title : String
     , cardText : String
@@ -55,12 +59,13 @@ type alias User =
     , photoURL : String
     , karma: Int
     , moderator : Bool
+    , city : String
     }
 
 
 emptyUser : User
 emptyUser =
-    User "" "" "" "" 0 False
+    User "" "" "" "" 0 False ""
 
 
 -- 0 unpublished
@@ -161,6 +166,7 @@ type Popup
     = NoPopup
     | ProfileMenuPopup
     | NotificationsListPopup
+    | CityListPopup
 
 
 type Msg
@@ -173,6 +179,10 @@ type Msg
     | CardInputFocus Bool
     | SetMessageText String
     | MessageInputFocus Bool
+    | SetFilterCityListText String
+    --| FilterCityListInputFocus Bool
+    | FilterCityList
+    | SetCity String
     | Login
     | Logout
     | SetUser User
@@ -195,6 +205,7 @@ type Msg
     | ConfirmHelp Card
     | ShowProfileMenuPopup
     | ShowNotificationsPopup
+    | ShowCityListPopup
     | HidePopup Msg
     | AddNotification Notification
     --| MarkNotificationsAsRead (List String)
@@ -207,3 +218,5 @@ type Msg
     | MessagePackAdded ChatMessagePack
     | RoomMetadataFetched RoomMetadata
     | WindowResized { width : Int, height : Int }
+    | ChangeCityList String
+    --| ChangeCityList { english : (List String), russian : (List String) }

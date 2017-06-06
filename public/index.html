@@ -32,6 +32,12 @@
   .light-btn:hover {
     text-decoration: underline;
   }
+  .card {
+    cursor: pointer;
+  }
+  .card:hover {
+    background: #f9f9f9;
+  }
   .card-input::-webkit-input-placeholder { color: #333; }
   .card-input::-moz-placeholder { color: #333; }
   .card-input:focus::-webkit-input-placeholder { color: #ddd; }
@@ -72,6 +78,7 @@
   }
   .notification-list li {
     display: block;
+    cursor: pointer;
   }
   .notification-list li:first-child {
     border-radius: 5px 5px 0 0;
@@ -85,10 +92,15 @@
   }
   .notification-list li:hover {
     background: #f9f9f9;
-    cursor: pointer;
   }
   .notification-list li div {
     padding: 8px 10px;
+  }
+  .city-list-item {
+    cursor: pointer;
+  }
+  .city-list-item:hover {
+    background: #f9f9f9;
   }
   ._assigned {
     background: #f9f9f9;
@@ -102,6 +114,7 @@
 <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-database.js"></script>
 <script src='date-fns-distance.js'></script>
 <script src="fetch.js"></script>
+<script src="cities.js"></script>
 <script src="app.js"></script>
 <script>
   var config = {
@@ -186,53 +199,13 @@
     app.ports.notificationRemoved.send(notification.val());
   }
 
-  auth.onAuthStateChanged(function(user) {
-    if (!user) return;
-
-    var userRef = database.ref('users/' + user.uid);
-    var userNotificationsRef = database.ref('user-notifications/' + user.uid)
-    var userRoomsRef = database.ref('user-rooms/' + user.uid)
-
-    userRef.once('value', function(snapshot) {
-      var userInDb = snapshot.val();
-      if (userInDb) {
-        setUserPresence(true);
-        app.ports.authStateChanged.send(userInDb);
-      } else {
-        // authorized for the first time -> create user
-        var updates = {};
-        var newUser = {
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          karma: 0,
-          moderator: false
-        };
-        updates['users/' + user.uid] = newUser;
-
-        database.ref()
-          .update(updates)
-          .then(function() {
-            setUserPresence(true);
-            app.ports.authStateChanged.send(newUser);
-          })
-          .catch(function(error) {
-            console.error('## error during [creating new user]:', error);
-          });
-      }
-    }).catch(function(error) {
-      console.error('## error during [getting user info]:', error);
-    });
-
-
-    // -- user related subscribes
-
+  function enableUserLoggedInSubscribes(user) {
+    var userNotificationsRef = database.ref('user-notifications/' + user.uid);
 
     userNotificationsRef.limitToLast(12).on('child_added', notificationAdded);
     userNotificationsRef.on('child_removed', notificationRemoved);
 
-    userRoomsRef
+    database.ref('user-rooms/' + user.uid)
       .limitToLast(12)
       .on('child_added', function(room) {
         app.ports.roomAdded.send({ id: room.key, users: [], messages: [] });
@@ -244,9 +217,48 @@
           });
       });
 
-    userRef.child('lastOnline').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+    database.ref('users/' + user.uid)
+      .child('lastOnline')
+      .onDisconnect()
+      .set(firebase.database.ServerValue.TIMESTAMP);
 
-    database.ref('users-online').child(user.uid).onDisconnect().remove();
+    database.ref('users-online')
+      .child(user.uid)
+      .onDisconnect()
+      .remove();
+  }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) return;
+
+    database.ref('users/' + user.uid).transaction(function(_user) {
+      if (!_user) {
+        // authorized for the first time -> create user
+        _user = {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          karma: 0,
+          moderator: false,
+          city: ""
+        };
+      }
+      if (CURRENT_CITY && _user.city !== CURRENT_CITY) {
+        if (_user.city) {
+          var change = confirm("Хотите сменить ваш город " + window.cities[_user.city] + " на " + window.cities[CURRENT_CITY] + "?");
+          if (change) {
+            _user.city = CURRENT_CITY;
+          }
+        } else {
+          _user.city = CURRENT_CITY;
+        }
+      }
+      setUserPresence(true);
+      app.ports.authStateChanged.send(_user);
+      enableUserLoggedInSubscribes(_user);
+      return _user;
+    });
   });
 
 
@@ -255,6 +267,18 @@
     width: window.innerWidth || document.documentElement.clientWidth,
     height: window.innerHeight || document.documentElement.clientHeight
   });
+
+  if (window.cities) {
+    var russianCityList = [];
+    var englishCityList = [];
+    for (var key in window.cities) {
+      russianCityList.push(window.cities[key]);
+      englishCityList.push(key);
+    }
+
+    app.ports.cityListChanged.send(JSON.stringify(window.cities));
+    // app.ports.cityListChanged.send({english: englishCityList, russian: russianCityList});
+  }
 
   // get data from redis cache
   // fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
@@ -302,6 +326,30 @@
       karma: 0,
       moderator: false
     });
+  });
+
+  // port setCity : { userId : String, city : String } -> Cmd msg
+  app.ports.setCity.subscribe(function(o) {
+    if (!o.userId) return;
+
+    database.ref('users/' + o.userId)
+      .transaction(function(user) {
+        if (!user) return user;
+
+        for (var transliteratedCity in window.cities) {
+          if (o.city === window.cities[transliteratedCity]) {
+            break;
+          }
+        }
+
+        if (user.city !== transliteratedCity) {
+          user.city = transliteratedCity;
+        }
+
+        app.ports.authStateChanged.send(user);
+
+        return user;
+      });
   });
 
   app.ports.fetchStreamCards.subscribe(getCards);
@@ -418,7 +466,7 @@
   app.ports.takeCard.subscribe(function(o) {
     var updates = {};
     updates['card-volunteers/' + o.card.id + '/' + o.user.uid] = o.user;
-    updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = o.card;
+    updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = true;
     var authorNotificationId = database.ref('user-notifications/' + o.card.authorId).push().key;
     updates['user-notifications/' + o.card.authorId + '/' + authorNotificationId] = {
       id: authorNotificationId,
@@ -508,11 +556,6 @@
 
     database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
 
-      snapshot.forEach(function(volunteer) {
-        updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedTo'] = o.user.uid;
-        updates['user-taken-cards/' + volunteer.key + '/' + o.card.id + '/assignedAt'] = firebase.database.ServerValue.TIMESTAMP;
-      });
-
       updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
       updates['cards/' + o.card.id + '/assignedAt'] = firebase.database.ServerValue.TIMESTAMP;
       // updates['rooms/']
@@ -532,10 +575,6 @@
     var updates = {};
 
     database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
-
-      snapshot.forEach(function(volunteer) {
-        updates['user-taken-cards/' + volunteer.key + '/' + card.id + '/status'] = 2;
-      });
 
       updates['cards/' + card.id + '/status'] = 2;
 
@@ -841,26 +880,104 @@
   });
 
 
+  // GEOLOCATION
+
+  /*
+    1. Get city name by IP
+    2. Get lon lat by IP -> get city name by lon lat
+    3. Get lon lat by browser Geolocation API -> get city name by lon lat
+
+    `http://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&sensor=false`
+    http://maps.google.com/maps/api/geocode/json?latlng=52.03333,113.55&sensor=false
+  */
+
+  var CURRENT_CITY = "";
+
+  function detectCity() {
+    fetch('http://besokind-server.herokuapp.com/city')
+      .then(function(response) {
+        response.json().then(function(responseJson) {
+          CURRENT_CITY = responseJson.data.city;
+
+          if (auth.currentUser) {
+            database.ref('users/' + auth.currentUser.uid)
+              .transaction(function(user) {
+                console.log('DETECT user', user.city);
+                if (user && user.city !== CURRENT_CITY) {
+                  if (user.city) {
+                    var change = confirm("Хотите сменить ваш город " + window.cities[user.city] + " на " + window.cities[CURRENT_CITY] + "?");
+                    if (change) {
+                      user.city = CURRENT_CITY;
+                    }
+                  } else {
+                    user.city = CURRENT_CITY;
+                  }
+                }
+                return user;
+              });
+          }
+        });
+      })
+      .catch(function(error) {
+        console.log('## error during detecting city', error);
+      })
+  }
+
+  detectCity();
+
+
   // ----- administrative functions
+
+  // -- CARD
+
   // function _updateCard(fieldName, fieldValue) {
   //   var updates = {};
-
-  //   var ready = 2;
-
-  //   function handleUserTakenCard(userId, card) {
-  //     updates['user-taken-cards/' + userId + '/' + card.id + '/' + fieldName] = fieldValue;
-  //   }
 
   //   function handleCard(card) {
   //     updates['cards/' + card.id + '/' + fieldName] = fieldValue;
   //   }
 
-  //   database.ref('user-taken-cards').once('value', function(snap) {
+  //   database.ref('cards').once('value', function(snap) {
+  //     snap.forEach(function(snapItem) {
+  //       handleCard(snapItem.val());
+  //     });
+
+  //     finish();
+  //   });
+
+  //   function finish() {
+  //     database.ref()
+  //       .update(updates)
+  //       .then(function() {
+  //         console.info('## succesfully [_updateCard]');
+  //       })
+  //       .catch(function(error) {
+  //         console.error('## error during [_updateCard]:', fieldName, error);
+  //       });
+  //   }
+  // }
+
+  // -- USER
+
+  // function _updateUser(fieldName, fieldValue) {
+  //   var updates = {};
+
+  //   var ready = 2;
+
+  //   function handleCardVolunteer(cardId, user) {
+  //     updates['card-volunteers/' + cardId + '/' + user.uid + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   function handleUser(user) {
+  //     updates['users/' + user.uid + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   database.ref('card-volunteers').once('value', function(snap) {
   //     snap.forEach(function(record) {
   //       var rec = record.val();
-  //       var userId = record.key;
-  //       for (var cardId in rec) {
-  //         handleUserTakenCard(userId, rec[cardId]);
+  //       var cardId = record.key;
+  //       for (var userId in rec) {
+  //         handleCardVolunteer(cardId, rec[userId]);
   //       }
   //     });
   //     ready--;
@@ -869,9 +986,9 @@
   //     }
   //   });
 
-  //   database.ref('cards').once('value', function(snap) {
+  //   database.ref('users').once('value', function(snap) {
   //     snap.forEach(function(snapItem) {
-  //       handleCard(snapItem.val());
+  //       handleUser(snapItem.val());
   //     });
   //     ready--;
   //     if (ready === 0) {
@@ -883,10 +1000,10 @@
   //     database.ref()
   //       .update(updates)
   //       .then(function() {
-  //         console.info('## succesfully [_updateCard]');
+  //         console.info('## succesfully [_updateUser]');
   //       })
   //       .catch(function(error) {
-  //         console.error('## error during [_updateCard]:', fieldName, error);
+  //         console.error('## error during [_updateUser]:', fieldName, error);
   //       });
   //   }
   // }
