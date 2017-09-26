@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html>
+<title>Будь Добр</title>
+<meta name='description' content='Здесь люди помогают друг другу и получают за это кармапоинты, а организации предоставляют свои услуги за кармапоинты'>
+<meta name="Keywords" content="Добро, помощь, карма, благотворительность">
+
+<meta property='og:title' content='Будь Добр'>
+<meta property='og:description' content='Дружище, здесь ты можешь попросить о помощи или помочь кому-то'>
+<meta property='og:image' content='https://besokind.ru/img/besokind_wide.png'>
+<meta property='og:url' content='https://besokind.ru'>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="img/favicon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="img/favicon.png">
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system,BlinkMacSystemFont,Ubuntu,Roboto,Open Sans,Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 16px;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .light-btn {
+    color: #555;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .light-btn:hover {
+    text-decoration: underline;
+  }
+  .card {
+    cursor: pointer;
+  }
+  .card:hover {
+    background: #f9f9f9;
+  }
+  .card-input::-webkit-input-placeholder { color: #333; }
+  .card-input::-moz-placeholder { color: #333; }
+  .card-input:focus::-webkit-input-placeholder { color: #ddd; }
+  .card-input:focus::-moz-placeholder { color: #ddd; }
+  .card-header__author-photo.online::after {
+    content: "";
+    background-color: limegreen;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid #fff;
+    border-radius: 0 0 4px 0;
+    width: 10px;
+    height: 10px;
+  }
+  .horizontal-list li {
+    display: inline-block;
+  }
+  .nav-item {
+    line-height: 48px;
+    height: 48px;
+    margin-right: 10px;
+    color: bisque;
+    cursor: pointer;
+  }
+  .nav-item:hover {
+    text-decoration: underline;
+  }
+  .nav-item._disabled {
+    color: #ffb494;
+  }
+  /*.nav-item._disabled:hover {
+    text-decoration: none;
+    cursor: default;
+  }*/
+  .notification-list {
+    cursor: auto;
+  }
+  .notification-list li {
+    display: block;
+    cursor: pointer;
+  }
+  .notification-list li:first-child {
+    border-radius: 5px 5px 0 0;
+    padding-top: 4px;
+    /*padding: 12px 10px 8px 10px;*/
+  }
+  .notification-list li:last-child {
+    border-radius: 0 0 5px 5px;
+    padding-bottom: 4px;
+    /*padding: 8px 10px 12px 10px;*/
+  }
+  .notification-list li:hover {
+    background: #f9f9f9;
+  }
+  .notification-list li div {
+    padding: 8px 10px;
+  }
+  .city-list-item {
+    cursor: pointer;
+  }
+  .city-list-item:hover {
+    background: #f9f9f9;
+  }
+  ._assigned {
+    background: #f9f9f9;
+  }
+</style>
+
+<div id="main"></div>
+
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-database.js"></script>
+<script src='src/date-fns-distance.js'></script>
+<script src="src/fetch.js"></script>
+<script src="src/cities-cut.js"></script>
+<script src="src/app.js"></script>
+<script>
+  var config = {
+    apiKey: "AIzaSyBenkychYMdGWfGBnjpxDAeEzR9hu60_f0",
+    authDomain: "besokind-b837c.firebaseapp.com",
+    databaseURL: "https://besokind-b837c.firebaseio.com",
+    storageBucket: "besokind-b837c.appspot.com",
+    messagingSenderId: "490319737092"
+  };
+  firebase.initializeApp(config);
+
+  var auth = firebase.auth();
+  var database = firebase.database();
+  var dbCards = database.ref('cards');
+  dbCards.off();
+
+
+
+  function addCardToList(card) {
+    card = card.val();
+    card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+    app.ports.addCardToList.send(card);
+  }
+
+  function updateCard(card) {
+    card = card.val();
+    card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+    app.ports.updateCard.send(card);
+  }
+
+
+  /*
+    depends on `dateFnsDistanceInWords`
+  */
+  function getCards(lastCardId) {
+    // var ref = dbCards.limitToLast(12);
+    var ref = dbCards.limitToLast(12);
+    if (lastCardId) {
+      ref = ref.endAt(null, lastCardId)
+    }
+    // ref = ref.orderByChild('city').equalTo()
+    ref.once('value', function(snap) {
+      var result = [];
+      snap.forEach(function(snapItem) {
+        var card = snapItem.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        result.unshift(card);
+      });
+
+      result.shift();
+
+      app.ports.addCardsToList.send(result);
+    });
+  }
+
+
+  function watchCards() {
+    dbCards.limitToLast(1).on('child_added', addCardToList);
+    dbCards.limitToLast(1).on('child_changed', updateCard);
+  }
+
+
+  function setUserPresence(isOnline) {
+    if (auth.currentUser) {
+      var updates = {};
+      updates[auth.currentUser.uid] = isOnline ? true : null;
+      database.ref('users-online')
+        .update(updates)
+        .then(function() {
+          // body...
+        })
+        .catch(function(error) {
+          console.error('## error during [setting user presence]:', error);
+        });
+    }
+  }
+
+  function notificationAdded(notification) {
+    app.ports.notificationAdded.send(notification.val());
+  }
+
+  function notificationRemoved(notification) {
+    app.ports.notificationRemoved.send(notification.val());
+  }
+
+  function enableUserLoggedInSubscribes(user) {
+    var userNotificationsRef = database.ref('user-notifications/' + user.uid);
+
+    userNotificationsRef.limitToLast(12).on('child_added', notificationAdded);
+    userNotificationsRef.on('child_removed', notificationRemoved);
+
+    database.ref('user-rooms/' + user.uid)
+      .limitToLast(12)
+      .on('child_added', function(room) {
+        app.ports.roomAdded.send({ id: room.key, users: [], messages: [] });
+
+        database.ref('room-messages/' + room.key)
+          .limitToLast(1)
+          .on('child_added', function(im) {
+            app.ports.messageAdded.send({chatId: room.key, im: im.val()});
+          });
+      });
+
+    database.ref('users/' + user.uid)
+      .child('lastOnline')
+      .onDisconnect()
+      .set(firebase.database.ServerValue.TIMESTAMP);
+
+    database.ref('users-online')
+      .child(user.uid)
+      .onDisconnect()
+      .remove();
+  }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) return;
+
+    database.ref('users/' + user.uid).transaction(function(_user) {
+      if (!_user) {
+        // authorized for the first time -> create user
+        _user = {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          karma: 0,
+          moderator: false,
+          city: ""
+        };
+      }
+      if (CURRENT_CITY && _user.city !== CURRENT_CITY) {
+        if (_user.city) {
+          var change = confirm("Хотите сменить ваш город " + window.cities[_user.city] + " на " + window.cities[CURRENT_CITY] + "?");
+          if (change) {
+            _user.city = CURRENT_CITY;
+          }
+        } else {
+          _user.city = CURRENT_CITY;
+        }
+      }
+      setUserPresence(true);
+      app.ports.authStateChanged.send(_user);
+      enableUserLoggedInSubscribes(_user);
+      return _user;
+    });
+  });
+
+
+  var app = Elm.Main.fullscreen();
+  app.ports.windowResized.send({
+    width: window.innerWidth || document.documentElement.clientWidth,
+    height: window.innerHeight || document.documentElement.clientHeight
+  });
+
+  if (window.cities) {
+    var russianCityList = [];
+    var englishCityList = [];
+    for (var key in window.cities) {
+      russianCityList.push(window.cities[key]);
+      englishCityList.push(key);
+    }
+
+    app.ports.cityListChanged.send(JSON.stringify(window.cities));
+    // app.ports.cityListChanged.send({english: englishCityList, russian: russianCityList});
+  }
+
+  // TODO: to recieve filtered by city cards we should have logged in user (which is slow opeartion so we used to recieve cards before user logs in)
+
+  // get data from redis cache
+  // fetch('https://besokind-c.herokuapp.com/api/v0/get_data')
+  fetch('https://besokind-b837c.firebaseio.com/cards.json?orderBy=%22$key%22&limitToLast=12')
+  // fetch('https://besokind-b837c.firebaseio.com/cards.json?orderBy=%22city%22&equalTo%22'+CURRENT_CITY+'%22&limitToLast=12')
+    .then(function(response) {
+      response.json().then(function(data) {
+        var result = [];
+
+        for (var key in data) {
+          var card = data[key];
+          card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+          result.unshift(card);
+        }
+
+        app.ports.addCardsToList.send(result);
+      })
+    })
+    .catch(function(error) { console.error(error) });
+
+
+  app.ports.login.subscribe(function(authType) {
+    fetch('https://besokind.ru/auth/vkontakte')
+      .then(function(user) {
+        console.log('\n\nuser', typeof user, user, '\n\n');
+      })
+      .catch(function(error) {
+        console.error('\n\nerror', typeof error, error, '\n\n');
+      });
+    // switch (authType) {
+    //   case 'google':
+    //     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    //     break;
+    // }
+  });
+
+  app.ports.logout.subscribe(function() {
+    if (auth.currentUser) {
+      var uid = auth.currentUser.uid;
+      setUserPresence(false);
+      database.ref('users/' + uid + '/lastOnline').set(firebase.database.ServerValue.TIMESTAMP);
+      database.ref('user-notifications/' + uid).off();
+      database.ref('user-rooms/' + uid).off();
+    }
+
+    auth.signOut();
+
+    app.ports.authStateChanged.send({
+      uid: '',
+      name: '',
+      email: '',
+      photoURL: '',
+      city: '',
+      karma: 0,
+      moderator: false
+    });
+  });
+
+  // port setCity : { userId : String, city : String } -> Cmd msg
+  app.ports.setCity.subscribe(function(o) {
+    if (!o.userId) return;
+
+    database.ref('users/' + o.userId)
+      .transaction(function(user) {
+        if (!user) return user;
+
+        for (var transliteratedCity in window.cities) {
+          if (o.city === window.cities[transliteratedCity]) {
+            break;
+          }
+        }
+
+        if (user.city !== transliteratedCity) {
+          user.city = transliteratedCity;
+        }
+
+        app.ports.authStateChanged.send(user);
+
+        return user;
+      });
+  });
+
+  app.ports.fetchStreamCards.subscribe(getCards);
+  app.ports.watchStreamCards.subscribe(watchCards);
+
+  app.ports.fetchCard.subscribe(function(id) {
+    database.ref('cards/' + id).once('value', function(card) {
+      card = card.val();
+      card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+      app.ports.cardFetched.send(card);
+    });
+  });
+
+  /*
+    port fetchCardVolunteers : String -> Cmd msg
+  */
+  app.ports.fetchCardVolunteers.subscribe(function(id) {
+    database.ref('card-volunteers/' + id).once('value', function(snapshot) {
+      var volunteers = [];
+      snapshot.forEach(function(user) {
+        volunteers.push(user.key);
+        fetchUser({id: user.key, purpose: 'openCardPage'});
+      });
+      app.ports.cardVolunteersFetched.send(volunteers);
+    });
+  });
+
+  app.ports.fetchUserCards.subscribe(function(id) {
+    dbCards.orderByChild('authorId').equalTo(id).once('value', function(snapshot) {
+      var cards = [];
+      snapshot.forEach(function(card) {
+        card = card.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        cards.push(card);
+      });
+      app.ports.userCardsFetched.send(cards);
+    });
+  });
+
+  app.ports.createCard.subscribe(function(card) {
+    var updates = {};
+    var cardId = dbCards.push().key;
+    card.id = cardId;
+    card.creationTime = +new Date();
+
+    if (card.city) {
+      var firstCharCode = card.city.charCodeAt(0);
+      // 65 == A, 122 === z
+      if (firstCharCode < 65 || firstCharCode > 122) {
+        for (var transliteratedCity in window.cities) {
+          if (card.city === window.cities[transliteratedCity]) {
+            break;
+          }
+        }
+        card.city = transliteratedCity;
+      }
+    }
+
+    // updates['/cards/' + cardId] = card;
+    // database.ref()
+    //   .update(updates)
+    //   .catch(function(error) {
+    //     console.error('## error during [pushing card]:', card, error);
+    //   });
+
+    fetch('/createCard?' + getQueryParams(card))
+      .then(function(res) {
+        console.log('Card successfully created');
+      })
+      .catch(function(error) {
+        console.error('Error during [creating card]:', error);
+      })
+  });
+
+  /*
+    port fetchUser : { id: String, purpose: String } -> Cmd msg
+      o.purpose "openUserPage" | "openChatPage"
+  */
+  app.ports.fetchUser.subscribe(fetchUser);
+
+  function fetchUser(o) {
+    database.ref('users/' + o.id).once('value', function(snapshot) {
+      var userInDb = snapshot.val();
+
+      if (userInDb) {
+        switch (o.purpose) {
+          case 'openUserPage':
+            app.ports.activeUserFetched.send(userInDb);
+            break;
+          case 'openChatPage':
+          case 'openCardPage':
+            app.ports.userFetched.send(userInDb);
+            break;
+        }
+      }
+    });
+  }
+
+  /*
+    port fetchUserTakenCards : String -> Cmd msg
+  */
+  app.ports.fetchUserTakenCards.subscribe(function(userId) {
+    database.ref('user-taken-cards/' + userId).limitToLast(12).once('value', function(snapshot) {
+      var cards = [];
+      snapshot.forEach(function(card) {
+        card = card.val();
+        card.creationTimeFriendly = dateFnsDistanceInWords(card.creationTime);
+        cards.push(card);
+      });
+      app.ports.userTakenCardsFetched.send(cards);
+    });
+  });
+
+  /*
+    port updateKarma : {authorId : String, cardId : String, karma : Int} -> Cmd msg
+  */
+  app.ports.updateKarma.subscribe(function(o) {
+    database.ref('cards/' + o.cardId)
+      .transaction(function(card) {
+        if (card) {
+          card.karma = o.karma;
+          if (card.status === 0) {
+            card.status = 1;
+          }
+        }
+        return card;
+      })
+      .catch(function(error) {
+        console.error('## error during [updating karma]', o.karma, 'for card:', o.cardId, error);
+      });
+  });
+
+  /*
+    port takeCard : { user : User, card : Card } -> Cmd msg
+  */
+  app.ports.takeCard.subscribe(function(o) {
+    var updates = {};
+    updates['card-volunteers/' + o.card.id + '/' + o.user.uid] = o.user;
+    updates['user-taken-cards/' + o.user.uid + '/' + o.card.id] = true;
+    var authorNotificationId = database.ref('user-notifications/' + o.card.authorId).push().key;
+    updates['user-notifications/' + o.card.authorId + '/' + authorNotificationId] = {
+      id: authorNotificationId,
+      name: 'userTookCard',
+      read: false,
+      cardId: o.card.id,
+      userId: o.user.uid,
+      cardAuthorId: o.card.authorId,
+      userName: o.user.name
+    };
+    database.ref()
+      .update(updates)
+      .then(function() {
+        database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
+        var volunteers = [];
+        snapshot.forEach(function(user) {
+          volunteers.push(user.key);
+          fetchUser({id: user.key, purpose: 'openCardPage'});
+        });
+        app.ports.cardVolunteersFetched.send(volunteers);
+      });
+      })
+      .catch(function(error) {
+        console.error('## error during [adding volunteer]', o.user.uid, 'to card:', o.card.id, error);
+      });
+  });
+
+  /*
+    port removeCard : Card -> Cmd msg
+  */
+  app.ports.removeCard.subscribe(function(card) {
+    database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
+      var updates = {};
+      updates['cards/' + card.id] = null;
+      updates['card-volunteers/' + card.id] = null;
+      snapshot.forEach(function(volunteerId) {
+        updates['user-taken-cards/' + volunteer.key + '/' + card.id] = null;
+      });
+      database.ref()
+        .update(updates)
+        .then(function() {
+          // card removed
+          app.ports.cardRemoved.send(card);
+        })
+        .catch(function(error) {
+          console.error('## error during [removing card]:', card.id, error);
+        });
+    });
+  });
+
+
+  function createRoom(roomId, authorId, volunteerId, cardAuthorName) {
+    var roomExists = false;
+
+    var updates = {};
+    updates['room-metadata/' + roomId + '/users/' + authorId] = true;
+    updates['room-metadata/' + roomId + '/users/' + volunteerId] = true;
+    updates['user-rooms/' + authorId + '/' + roomId] = true;
+    updates['user-rooms/' + volunteerId + '/' + roomId] = true;
+    var volunteerNotificationId = database.ref('user-notifications/' + volunteerId).push().key;
+    updates['user-notifications/' + volunteerId + '/' + volunteerNotificationId] = {
+      id: volunteerNotificationId,
+      name: 'userAssignedToCard',
+      read: false,
+      cardId: roomId,
+      userId: volunteerId,
+      cardAuthorId: authorId,
+      userName: cardAuthorName
+    };
+
+    database.ref()
+      .update(updates)
+      .then(function() {
+        
+      })
+      .catch(function(error) {
+        console.error('## error during [creating room]:', roomId, 'for users:', authorId, volunteerId, error);
+      });
+  }
+
+
+  /*
+    port assignVolunteer : { card : Card, user : User, userName : String } -> Cmd msg
+  */
+  app.ports.assignVolunteer.subscribe(function(o) {
+    var updates = {};
+
+    database.ref('card-volunteers/' + o.card.id).once('value', function(snapshot) {
+
+      updates['cards/' + o.card.id + '/assignedTo'] = o.user.uid;
+      updates['cards/' + o.card.id + '/assignedAt'] = firebase.database.ServerValue.TIMESTAMP;
+      // updates['rooms/']
+
+      database.ref()
+        .update(updates)
+        .then(function() {
+          createRoom(o.card.id, o.card.authorId, o.user.uid, o.userName);
+        })
+        .catch(function(error) {
+          console.error('## error during [assigning volunteer]:', o.user.uid, 'for card:', o.card.id, error);
+        });
+    });
+  });
+
+  app.ports.confirmHelp.subscribe(function(card) {
+    var updates = {};
+
+    database.ref('card-volunteers/' + card.id).once('value', function(snapshot) {
+
+      updates['cards/' + card.id + '/status'] = 2;
+
+
+      database.ref()
+        .update(updates)
+        .then(function() {
+          // update user karma
+          database.ref('users/' + card.assignedTo)
+            .transaction(function(user) {
+              if (user) {
+                user.karma = user.karma + card.karma;
+              }
+              return user;
+            });
+
+          // create notifications for each volunteer
+          var updates = {};
+          snapshot.forEach(function(volunteer) {
+            var volunteerId = volunteer.key;
+            var volunteerNotificationId = database.ref('user-notifications/' + volunteerId).push().key;
+            updates['user-notifications/' + volunteerId + '/' + volunteerNotificationId] = {
+              id: volunteerNotificationId,
+              name: 'helpConfirmed',
+              read: false,
+              cardId: card.id,
+              userId: card.assignedTo,
+              cardAuthorId: card.authorId,
+              userName: card.authorName
+            };
+          });
+          database.ref()
+            .update(updates)
+            .then(function() {})
+            .catch(function(error) {
+              console.error('## error during [creating helpConfirmed notifications]: for card:', card, error);
+            });
+
+          // update card in application
+          database.ref('cards/' + card.id).once('value', function(snap) {
+            app.ports.updateCard.send(snap.val());
+          });
+        })
+        .catch(function(error) {
+          console.error('## error during [confirming help]: for card:', card, error);
+        });
+    });
+  });
+
+  /*
+    port markNotificationsAsRead : { userId : String, notificationIdList : List String } -> Cmd msg
+  */
+  app.ports.markNotificationsAsRead.subscribe(function(o) {
+    var updates = {};
+    o.notificationIdList.forEach(function(notificationId) {
+      updates['user-notifications/' + o.userId + '/' + notificationId + '/read'] = true;
+    });
+    database.ref()
+      .update(updates)
+      .then(function() {})
+      .catch(function(error) {
+        console.error('## error during [marking notifications as read]:', o.notificationIdList, 'for user:', o.userId, error);
+      });
+  });
+
+  app.ports.persistCardText.subscribe(function(cardText) {
+    if (!window.localStorage) return;
+    localStorage.setItem('cardText', cardText);
+  });
+
+  if (window.localStorage) {
+    var cardText = localStorage.getItem('cardText');
+    if (cardText) {
+      app.ports.cardTextFetched.send(cardText);
+    }
+  }
+
+  database.ref('users-online').on('child_added', function(snapshot) {
+    app.ports.onlineUserAdded.send(snapshot.key);
+  });
+  database.ref('users-online').on('child_removed', function(snapshot) {
+    app.ports.onlineUserRemoved.send(snapshot.key);
+  });
+
+  // CHAT
+
+  app.ports.fetchChatMessages.subscribe(fetchChatMessages);
+
+  // port fetchChatMessages : { chatId : String, lastMessageId : String } -> Cmd msg
+  function fetchChatMessages(o) {
+    var chatId = o.chatId;
+    var lastMessageId = o.lastMessageId;
+    var pageSize = 12;
+    var ref = database
+      .ref('room-messages/' + chatId)
+      .limitToLast(pageSize);
+    var needToRemoveLast = false;
+
+    if (lastMessageId) {
+      needToRemoveLast = true;
+      ref = ref.endAt(null, lastMessageId)
+    }
+
+    ref.once('value', function(snap) {
+      var messages = [];
+
+      snap.forEach(function(im) {
+        messages.push(im.val());
+      });
+
+      if (needToRemoveLast) {
+        // убираем последнее, т.к. использовался lastMessageId и это сообщение у нас уже есть
+        messages.pop();
+      }
+
+      app.ports.chatMessagesFetched.send({chatId: chatId, messages: messages});
+    });
+  }
+
+
+  // var watchingChatId;
+  // app.ports.watchChatMessages.subscribe(function(chatId) {
+  //   if (watchingChatId && watchingChatId !== chatId) {
+  //     database.ref('room-messages/' + watchingChatId).off();
+  //   }
+  //   // TODO (salnikov): даже после unwatch все равно надо фильтровать от дубликатов
+  //   watchingChatId = chatId;
+  //   database.ref('room-messages/' + chatId).limitToLast(12).on('child_added', function(im) {
+  //     app.ports.messageAdded.send({chatId: chatId, im: im.val()});
+  //   });
+  // });
+  // app.ports.unwatchChatMessages.subscribe(function(chatId) {
+  //   database.ref('room-messages/' + chatId).off();
+  // });
+
+  app.ports.sendMessage.subscribe(function(chatMessage) {
+    var roomRef = database.ref('room-messages/' + chatMessage.chatId);
+    var key = roomRef.push().key;
+    var updates = {};
+    var im = chatMessage.im;
+    im.id = key;
+    im.date = firebase.database.ServerValue.TIMESTAMP;
+    updates[key] = im;
+    roomRef.update(updates)
+      .catch(function(error) {
+        console.error('## error during [sending message]:', chatMessage, error);
+      });
+  });
+
+  app.ports.fetchRoomMetadata.subscribe(function(roomId) {
+    database.ref('room-metadata/' + roomId)
+      .once('value', function(snapshot) {
+        var data = snapshot.val();
+        var roomMetadata = {
+          id: roomId,
+          users: Object.keys(data.users)
+        };
+        app.ports.roomMetadataFetched.send(roomMetadata);
+      });
+  });
+
+  app.ports.focusElement.subscribe(function(elementId) {
+    requestAnimationFrame(function() {
+      var el = document.getElementById(elementId);
+      if (el) {
+        el.focus();
+      }
+    });
+  });
+
+  // id of DOMNode; count of children should be when scroll to fire
+  // port scrollElementToEnd : { elementId : String, count : Int } -> Cmd msg
+  app.ports.scrollElementToEnd.subscribe(function(o) {
+    // все действа с домом делать нужно после отрисовки
+    requestAnimationFrame(function() {
+      var el = document.getElementById(o.elementId);
+      if (el) {
+        hasEnoughChildrenByCount(el, o.count, function() {
+          el.scrollTop = el.scrollHeight;
+        });
+      }
+    });
+  });
+
+  window.onresize = function() {
+    if (app === undefined) return;
+    app.ports.windowResized.send({
+      width: window.innerWidth || document.documentElement.clientWidth,
+      height: window.innerHeight || document.documentElement.clientHeight
+    });
+  };
+
+  // port enableCardStreamInfiniteScroll : { elementId : String, lastCardId : String } -> Cmd msg
+  app.ports.enableCardStreamInfiniteScroll.subscribe(function(o) {
+    var el = document.getElementById(o.elementId);
+    if (!el) return;
+    hasEnoughChildrenByHeight(el, 400, function() {
+      function onScroll() {
+        if (el.scrollHeight - el.offsetHeight - el.scrollTop < 100) {
+          console.log('o.lastCardId', typeof o.lastCardId, o.lastCardId);
+          getCards(o.lastCardId);
+          el.removeEventListener('scroll', onScroll);
+        }
+      }
+
+      el.addEventListener('scroll', onScroll);
+    });
+  });
+
+  // port enableChatHistoryInfiniteScroll : { elementId : String, chatId : String, lastMessageId : String } -> Cmd msg
+  app.ports.enableChatHistoryInfiniteScroll.subscribe(function(o) {
+    requestAnimationFrame(function() {
+      var el = document.getElementById(o.elementId);
+      if (el) {
+        hasEnoughChildrenByCount(el, 12, function() {
+          // timeout нужен для того, чтобы подписаться после того, как мы доскролим до конца
+          setTimeout(function() {
+            var thirdChild = el.children[2];
+            if (thirdChild) {
+
+              function onScroll() {
+                // if (isElementInViewport(thirdChild)) {
+                if (el.scrollTop < 100) {
+                  fetchChatMessages(o);
+                  preserveScroll(el);
+                  el.removeEventListener('scroll', onScroll);
+                }
+              }
+
+              el.addEventListener('scroll', onScroll);
+            }
+          }, 500)
+        });
+      }
+    });
+  });
+
+  function preserveScroll(el, callback) {
+    var lastScrollHeight = el.scrollHeight;
+    var started = false;
+
+    function checkHeight() {
+      if (el.scrollHeight > lastScrollHeight) {
+        started = true;
+        requestAnimationFrame(checkHeight);
+        el.scrollTop = el.scrollTop + (el.scrollHeight - lastScrollHeight);
+
+        lastScrollHeight = el.scrollHeight;
+      } else {
+        if (started) {
+          if (callback) callback();
+        } else {
+          requestAnimationFrame(checkHeight);
+        }
+      }
+    }
+
+    requestAnimationFrame(checkHeight);
+  }
+
+  function hasEnoughChildrenByCount(el, childCount, callback) {
+    hasEnoughChildren(
+      el,
+      function() { return el.children.length === childCount; },
+      callback
+    );
+  }
+
+  function hasEnoughChildrenByHeight(el, height, callback) {
+    hasEnoughChildren(
+      el,
+      function() { return el.offsetHeight > height; },
+      callback
+    );
+  }
+
+  function hasEnoughChildren(el, condition, callback) {
+    function onChildAdded() {
+      if (condition()) {
+        callback();
+        el.removeEventListener('DOMNodeInserted', onChildAdded);
+      }
+    }
+
+    // детей столько же, случай при переносе строки в инпуте, надо чтоб высота инпута обновилась
+    if (condition()) {
+        callback();
+    } else {
+      // детей меньше, случай при открытии страницы, когда не все дети еще добавились в дом
+      el.addEventListener('DOMNodeInserted', onChildAdded);
+    }
+  }
+
+  function isElementInViewport(el) {
+      var rect = el.getBoundingClientRect();
+
+      return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+  }
+
+  window.addEventListener('click', function() {
+    app.ports.clickedSomewhere.send('');
+  });
+  window.addEventListener('keydown', function(e) {
+    if (e.keyCode === 27) {
+      app.ports.escPressed.send('');
+    }
+  });
+
+
+  // GEOLOCATION
+
+  /*
+    1. Get city name by IP
+    2. Get lon lat by IP -> get city name by lon lat
+    3. Get lon lat by browser Geolocation API -> get city name by lon lat
+
+    `http://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&sensor=false`
+    http://maps.google.com/maps/api/geocode/json?latlng=52.03333,113.55&sensor=false
+  */
+
+  var CURRENT_CITY = "";
+
+  function detectCity() {
+    fetch('https://besokind.ru/city')
+      .then(function(response) {
+        response.json().then(function(responseJson) {
+          CURRENT_CITY = responseJson.data.city;
+
+          if (auth.currentUser) {
+            database.ref('users/' + auth.currentUser.uid)
+              .transaction(function(user) {
+                if (user && user.city !== CURRENT_CITY) {
+                  console.log('DETECT user', user.city);
+                  if (user.city) {
+                    var change = confirm("Хотите сменить ваш город " + window.cities[user.city] + " на " + window.cities[CURRENT_CITY] + "?");
+                    if (change) {
+                      user.city = CURRENT_CITY;
+                    }
+                  } else {
+                    user.city = CURRENT_CITY;
+                  }
+                }
+                return user;
+              });
+          }
+        });
+      })
+      .catch(function(error) {
+        console.log('## error during detecting city', error);
+      })
+  }
+
+  detectCity();
+
+
+
+  function getQueryParams(params) {
+    return Object.keys(params)
+      .map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]) })
+      .join('&');
+  }
+  
+
+
+  // ----- administrative functions
+
+  // -- CARD
+
+  // function _updateCard(fieldName, fieldValue) {
+  //   var updates = {};
+
+  //   function handleCard(card) {
+  //     updates['cards/' + card.id + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   database.ref('cards').once('value', function(snap) {
+  //     snap.forEach(function(snapItem) {
+  //       handleCard(snapItem.val());
+  //     });
+
+  //     finish();
+  //   });
+
+  //   function finish() {
+  //     database.ref()
+  //       .update(updates)
+  //       .then(function() {
+  //         console.info('## succesfully [_updateCard]');
+  //       })
+  //       .catch(function(error) {
+  //         console.error('## error during [_updateCard]:', fieldName, error);
+  //       });
+  //   }
+  // }
+
+  // -- USER
+
+  // function _updateUser(fieldName, fieldValue) {
+  //   var updates = {};
+
+  //   var ready = 2;
+
+  //   function handleCardVolunteer(cardId, user) {
+  //     updates['card-volunteers/' + cardId + '/' + user.uid + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   function handleUser(user) {
+  //     updates['users/' + user.uid + '/' + fieldName] = fieldValue;
+  //   }
+
+  //   database.ref('card-volunteers').once('value', function(snap) {
+  //     snap.forEach(function(record) {
+  //       var rec = record.val();
+  //       var cardId = record.key;
+  //       for (var userId in rec) {
+  //         handleCardVolunteer(cardId, rec[userId]);
+  //       }
+  //     });
+  //     ready--;
+  //     if (ready === 0) {
+  //       finish();
+  //     }
+  //   });
+
+  //   database.ref('users').once('value', function(snap) {
+  //     snap.forEach(function(snapItem) {
+  //       handleUser(snapItem.val());
+  //     });
+  //     ready--;
+  //     if (ready === 0) {
+  //       finish();
+  //     }
+  //   });
+
+  //   function finish() {
+  //     database.ref()
+  //       .update(updates)
+  //       .then(function() {
+  //         console.info('## succesfully [_updateUser]');
+  //       })
+  //       .catch(function(error) {
+  //         console.error('## error during [_updateUser]:', fieldName, error);
+  //       });
+  //   }
+  // }
+</script>
+</html>
