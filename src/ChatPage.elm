@@ -1,4 +1,5 @@
 module ChatPage exposing (viewChatListPage, viewChatPage)
+
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput, on)
 import Html.Attributes exposing (..)

@@ -1,9 +1,11 @@
 module Types exposing (..)
+
 import Time exposing (Time)
 import Set
 import Dict
 import Array
 import Navigation
+
 
 type Page
     = PageHome
@@ -28,6 +30,7 @@ type alias Model =
     , filterCityListQuery : String
     , loggedIn : Bool
     , title : String
+    , cardCity : String
     , cardText : String
     , cardInputFocus : Bool
     , messageText : String
@@ -86,6 +89,7 @@ type alias Card =
     , creationTime : Float
     , creationTimeFriendly : String
     , karma : Int
+    , city : String
     , place : String
     , title : String
     , body : String
@@ -96,7 +100,7 @@ type alias Card =
 
 emptyCard : Card
 emptyCard =
-    Card "" 0 "" "" "" 0 "" 0 "" "" "" "" 0
+    Card "" 0 "" "" "" 0 "" 0 "" "" "" "" "" 0
 
 
 type alias IM =
@@ -183,6 +187,7 @@ type Msg
     --| FilterCityListInputFocus Bool
     | FilterCityList
     | SetCity String
+    | SetCardCity String
     | Login
     | Logout
     | SetUser User

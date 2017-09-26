@@ -1,11 +1,11 @@
 module Pages exposing (toHash, defaultPage, getPageByLocation, updatePage)
+
 import UrlParser as Url exposing (Parser, (</>), int, oneOf, s, string, map)
 import Navigation
 import Task
 import Time exposing (Time)
 import Array
 import Dict
-
 
 import Types exposing (..)
 import Data exposing (fetchDataForPage)

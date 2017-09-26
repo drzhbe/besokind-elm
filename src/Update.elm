@@ -1,4 +1,5 @@
 module Update exposing (update)
+
 import Task
 import Time exposing (Time)
 import Set
@@ -12,6 +13,7 @@ import Types exposing (..)
 import Ports exposing (..)
 import Pages exposing (toHash, getPageByLocation, updatePage)
 import Data exposing (fetchDataForPage)
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -32,6 +34,9 @@ update msg model =
 
         SetPage page ->
             ( model, Navigation.newUrl <| toHash page )
+
+        SetCardCity city ->
+            ( { model | cardCity = city }, Cmd.none )
 
         SetCardText text ->
             ( { model | cardText = text }, Cmd.none )
@@ -111,6 +116,12 @@ update msg model =
               }, Cmd.none )
 
         CreateCard ->
+            let
+                city =
+                    if not (String.isEmpty model.cardCity)
+                    then model.cardCity
+                    else model.user.city
+            in
             ( { model | cardText = "" }
             , Cmd.batch
                 [ createCard
@@ -122,6 +133,7 @@ update msg model =
                     , creationTime = 0
                     , creationTimeFriendly = ""
                     , karma = 0
+                    , city = city
                     , place = model.place
                     , title = model.title
                     , body = model.cardText
@@ -133,10 +145,10 @@ update msg model =
             )
 
         ShowCards cards ->
-            ( { model | cardList = (List.reverse cards) }, Cmd.none )
+            ( { model | cardList = cards }, Cmd.none )
 
         ShowUserCards cards ->
-            ( { model | userCards = (List.reverse cards) }, Cmd.none )
+            ( { model | userCards = cards }, Cmd.none )
 
         AddCardToList card ->
             case List.head model.cardList of
